@@ -1,614 +1,469 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CodeLab AP</title>
-    <style>
-        /* --- Global Styles & Variables --- */
-        :root {
-            --primary-color: #39ff14;
-            --dark-bg: #1a1a1a;
-            --light-bg: #2b2b2b;
-            --text-color: #f0f0f0;
-            --glass-bg: rgba(40, 40, 40, 0.6);
-            --glass-border: rgba(255, 255, 255, 0.1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background-color: var(--dark-bg);
-            color: var(--text-color);
-            overflow: hidden;
-            height: 100vh;
-        }
-
-        /* --- Splash Screen --- */
-        #splash-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: var(--dark-bg);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 1001;
-            transition: opacity 0.5s ease-in-out;
-        }
-        #splash-logo {
-            font-size: 5rem; color: var(--primary-color);
-            text-shadow: 0 0 5px var(--primary-color), 0 0 15px var(--primary-color), 0 0 30px var(--primary-color), 0 0 50px #000;
-            animation: pulse 2s infinite ease-in-out;
-        }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-
-        /* --- Main App Container --- */
-        #app-container {
-            width: 100%; height: 100%;
-            display: flex; flex-direction: column;
-            padding: 15px; gap: 15px;
-            opacity: 0; transform: scale(0.95);
-            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
-            overflow-y: auto;
-        }
-        #app-container.visible { opacity: 1; transform: scale(1); }
-
-        /* Glass Effect Helper Class */
-        .glass-panel {
-            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border-radius: 15px; border: 1px solid var(--glass-border); padding: 15px;
-        }
-
-        /* --- Header --- */
-        .app-header { text-align: center; padding: 0; }
-        .app-header h1 { font-size: 2rem; font-weight: bold; color: var(--primary-color); text-shadow: 0 0 8px rgba(57, 255, 20, 0.7); }
-
-        /* --- Preview Container (Android/Desktop Shape) --- */
-        #preview-wrapper {
-            background: #111; border: 3px solid #444;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            display: flex; flex-direction: column;
-            transition: all 0.4s ease-in-out;
-        }
-        #preview-frame { width: 100%; border: none; background-color: #fff; }
-        
-        /* Shape styles */
-        .preview-mobile-shape { border-radius: 30px; padding: 10px; }
-        .preview-mobile-shape #preview-frame { height: 25vh; border-radius: 20px; }
-        .preview-desktop-shape { border-radius: 10px; padding: 5px; }
-        .preview-desktop-shape #preview-frame { height: 25vh; border-radius: 5px; }
-
-        #preview-controls { display: flex; justify-content: space-between; align-items: center; padding: 8px 15px 0 15px; }
-        #preview-controls .view-modes { display: flex; gap: 15px; }
-        .icon-btn { background: none; border: none; color: var(--text-color); cursor: pointer; padding: 5px; transition: color 0.3s, transform 0.3s; }
-        .icon-btn:hover, .icon-btn.active { color: var(--primary-color); transform: scale(1.1); }
-        .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
-
-        /* --- Mini Editor --- */
-        #mini-editor { display: flex; flex-direction: column; min-height: 200px; }
-        #editor-tabs { display: flex; gap: 5px; margin-bottom: -1px; }
-        .tab-btn { padding: 8px 15px; background: transparent; border: 1px solid var(--glass-border); border-bottom: none; color: var(--text-color); cursor: pointer; border-radius: 8px 8px 0 0; transition: background-color 0.3s, color 0.3s; }
-        .tab-btn.active { background: var(--light-bg); color: var(--primary-color); border-color: var(--primary-color); }
-        #editor-panes { flex-grow: 1; position: relative; }
-        .code-editor {
-            width: 100%; height: 100%; position: absolute; top: 0; left: 0;
-            background: var(--light-bg); color: var(--text-color);
-            border: 1px solid var(--glass-border); border-radius: 0 8px 8px 8px; padding: 10px;
-            font-family: 'Courier New', Courier, monospace; font-size: 14px;
-            resize: none; outline: none; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
-        }
-        .code-editor.active { opacity: 1; visibility: visible; }
-
-        /* --- File Manager --- */
-        #file-manager { display: flex; flex-direction: column; gap: 10px; }
-        .file-manager-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-        .main-btn {
-            flex-grow: 1; padding: 12px; background: var(--primary-color); color: var(--dark-bg);
-            border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s; text-align: center;
-        }
-        .main-btn:hover { background-color: #2eff0b; transform: translateY(-2px); }
-        #fs-editor-btn-wrapper { width: 100%; }
-        #open-fs-editor-btn { width: 100%; }
-
-        #file-list { list-style: none; max-height: 150px; overflow-y: auto; background: var(--light-bg); border-radius: 8px; padding: 5px; }
-        #file-list li { display: flex; align-items: center; justify-content: space-between; padding: 5px 10px; border-radius: 5px; transition: background-color 0.2s; }
-        #file-list li:hover { background-color: rgba(255, 255, 255, 0.1); }
-        .file-item-name { display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1; }
-        .file-item-name svg { width: 18px; height: 18px; fill: var(--primary-color); flex-shrink: 0; }
-        .file-actions { display: flex; gap: 5px; flex-shrink: 0; }
-        .file-actions button { background: none; border: none; color: var(--text-color); cursor: pointer; padding: 3px; }
-        .file-actions button svg { width: 16px; height: 16px; }
-
-        /* --- Full Screen Editor --- */
-        #fullscreen-editor-view {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark-bg);
-            z-index: 500; display: none; flex-direction: column;
-        }
-        .fullscreen-bar { display: flex; align-items: center; padding: 10px; background: var(--light-bg); flex-shrink: 0; }
-        #fs-top-bar { justify-content: space-between; }
-        #fs-top-bar .center-tools { display: flex; gap: 15px; }
-        #fs-editor-container { flex-grow: 1; position: relative; }
-        #fs-editor-container .code-editor { border-radius: 0; border: none; font-size: 16px; }
-        #fs-bottom-bar { justify-content: space-between; overflow-x: auto; }
-        #fs-bottom-bar .char-buttons { display: flex; gap: 8px; }
-        .char-btn {
-            background-color: #444; color: var(--text-color); border: none; border-radius: 5px;
-            padding: 10px 14px; font-size: 16px; font-family: 'Courier New', Courier, monospace; cursor: pointer;
-        }
-
-        /* --- Custom Context Menu --- */
-        #custom-context-menu {
-            position: absolute;
-            z-index: 1000;
-            display: none;
-            flex-direction: column;
-            width: 150px;
-        }
-        #custom-context-menu button {
-            background: var(--light-bg); color: var(--text-color); border: none;
-            padding: 12px; text-align: left; cursor: pointer;
-            border-bottom: 1px solid var(--glass-border);
-            transition: background-color 0.2s;
-        }
-        #custom-context-menu button:hover { background-color: var(--primary-color); color: var(--dark-bg); }
-        #custom-context-menu button:first-child { border-radius: 8px 8px 0 0; }
-        #custom-context-menu button:last-child { border-radius: 0 0 8px 8px; border-bottom: none; }
-
-        /* Utility classes */
-        .hidden { display: none !important; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroNova AI - Revolutionizing Intelligence for the Future</title>
+    <meta name="description" content="NeuroNova AI is a cutting-edge AI SaaS platform that revolutionizes intelligence for the future. Experience the power of advanced artificial intelligence.">
+    <meta name="keywords" content="AI, artificial intelligence, SaaS, machine learning, neural networks, automation">
+    
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="NeuroNova AI - Revolutionizing Intelligence for the Future">
+    <meta property="og:description" content="Experience the power of advanced artificial intelligence with NeuroNova AI.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://neuronova-ai.com">
+    <meta property="og:image" content="assets/background.jpg">
+    
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NeuroNova AI - Revolutionizing Intelligence for the Future">
+    <meta name="twitter:description" content="Experience the power of advanced artificial intelligence with NeuroNova AI.">
+    <meta name="twitter:image" content="assets/background.jpg">
+    
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-
-    <!-- SVG Icons Definition -->
-    <svg class="hidden">
-        <defs>
-            <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></symbol>
-            <symbol id="icon-fullscreen" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></symbol>
-            <symbol id="icon-back" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></symbol>
-            <symbol id="icon-save" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></symbol>
-            <symbol id="icon-preview" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 10c-2.48 0-4.5-2.02-4.5-4.5S9.52 5.5 12 5.5s4.5 2.02 4.5 4.5-2.02 4.5-4.5 4.5zm0-7C10.62 7.5 9.5 8.62 9.5 10s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5S13.38 7.5 12 7.5z"/></symbol>
-            <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></symbol>
-            <symbol id="icon-file" viewBox="0 0 24 24"><path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z"/></symbol>
-            <symbol id="icon-delete" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
-            <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
-            <symbol id="icon-mobile" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"></path></symbol>
-            <symbol id="icon-desktop" viewBox="0 0 24 24"><path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"></path></symbol>
-            <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></symbol>
-        </defs>
-    </svg>
-
-    <!-- Splash Screen -->
-    <div id="splash-screen"><div id="splash-logo">&lt;/&gt;</div></div>
-
-    <!-- Main Application -->
-    <div id="app-container">
-        <header class="app-header"><h1>CodeLab AP</h1></header>
-        
-        <div id="preview-wrapper" class="preview-mobile-shape">
-            <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
-            <div id="preview-controls">
-                <button id="fullscreen-preview-btn" class="icon-btn" title="Full Screen Preview"><svg><use href="#icon-fullscreen"></use></svg></button>
-                <div class="view-modes">
-                    <button id="mobile-view-btn" class="icon-btn active" title="Mobile View"><svg><use href="#icon-mobile"></use></svg></button>
-                    <button id="desktop-view-btn" class="icon-btn" title="Desktop View"><svg><use href="#icon-desktop"></use></svg></button>
-                </div>
-                <button id="refresh-btn" class="icon-btn" title="Refresh Preview"><svg><use href="#icon-refresh"></use></svg></button>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-text">NeuroNova AI</span>
+            </div>
+            <ul class="nav-menu" id="nav-menu">
+                <li class="nav-item">
+                    <a href="#home" class="nav-link">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#features" class="nav-link">Features</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#demo" class="nav-link">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#testimonials" class="nav-link">Testimonials</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#pricing" class="nav-link">Pricing</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#contact" class="nav-link">Contact</a>
+                </li>
+            </ul>
+            <div class="nav-toggle" id="mobile-menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
             </div>
         </div>
+    </nav>
 
-        <div id="mini-editor" class="glass-panel">
-            <div id="editor-tabs">
-                <button class="tab-btn active" data-tab="html">HTML</button>
-                <button class="tab-btn" data-tab="css">CSS</button>
-                <button class="tab-btn" data-tab="js">JS</button>
-            </div>
-            <div id="editor-panes">
-                <textarea id="html-editor" class="code-editor active" spellcheck="false" placeholder="HTML code yaha likhe..."></textarea>
-                <textarea id="css-editor" class="code-editor" spellcheck="false" placeholder="CSS code yaha likhe..."></textarea>
-                <textarea id="js-editor" class="code-editor" spellcheck="false" placeholder="JavaScript code yaha likhe..."></textarea>
-            </div>
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-background">
+            <div class="gradient-animation"></div>
+            <div class="particles" id="particles"></div>
         </div>
-
-        <div id="file-manager" class="glass-panel">
-            <div class="file-manager-actions">
-                <button class="main-btn" id="import-file-btn">Import File</button>
-                <input type="file" id="file-input" class="hidden" multiple>
-                <button class="main-btn" id="save-file-btn">Save Project</button>
-            </div>
-            <div class="file-manager-actions"><button class="main-btn" id="create-folder-btn">Create Folder</button></div>
-            <ul id="file-list"></ul>
-        </div>
-
-        <div id="fs-editor-btn-wrapper"><button class="main-btn" id="open-fs-editor-btn">Full Screen Editor</button></div>
-    </div>
-    
-    <!-- Fullscreen Editor View -->
-    <div id="fullscreen-editor-view">
-        <div id="fs-top-bar" class="fullscreen-bar">
-            <button id="fs-back-btn" class="icon-btn"><svg><use href="#icon-back"></use></svg></button>
-            <div class="center-tools">
-                 <div id="fs-editor-tabs">
-                    <button class="tab-btn active" data-tab="html">HTML</button>
-                    <button class="tab-btn" data-tab="css">CSS</button>
-                    <button class="tab-btn" data-tab="js">JS</button>
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <span class="highlight">NeuroNova AI</span>
+                </h1>
+                <p class="hero-subtitle">Revolutionizing Intelligence for the Future</p>
+                <p class="hero-description">
+                    Harness the power of advanced artificial intelligence to transform your business, 
+                    automate complex processes, and unlock unprecedented insights with our cutting-edge AI platform.
+                </p>
+                <div class="hero-buttons">
+                    <a href="#contact" class="btn btn-primary">Get Started</a>
+                    <a href="#demo" class="btn btn-secondary">Live Demo</a>
                 </div>
             </div>
-            <div>
-                <button id="fs-import-btn" class="icon-btn" title="Import File"><svg><use href="#icon-upload"></use></svg></button>
-                <button id="fs-save-btn" class="icon-btn" title="Save Project"><svg><use href="#icon-save"></use></svg></button>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Powerful AI Features</h2>
+                <p class="section-subtitle">Discover the capabilities that make NeuroNova AI the future of intelligent automation</p>
             </div>
-        </div>
-        <div id="fs-editor-container">
-            <textarea id="fs-html-editor" class="code-editor active" spellcheck="false"></textarea>
-            <textarea id="fs-css-editor" class="code-editor" spellcheck="false"></textarea>
-            <textarea id="fs-js-editor" class="code-editor" spellcheck="false"></textarea>
-        </div>
-        <div id="fs-bottom-bar" class="fullscreen-bar">
-            <div class="char-buttons">
-                <button class="char-btn" data-char="<">&lt;</button> <button class="char-btn" data-char="/">/</button>
-                <button class="char-btn" data-char=">">&gt;</button> <button class="char-btn" data-char="=">=</button>
-                <button class="char-btn" data-char='"'>"</button> <button class="char-btn" data-char="'">'</button>
-                <button class="char-btn" data-char="{">{</button> <button class="char-btn" data-char="}">}</button>
-                <button class="char-btn" data-char="[">[</button> <button class="char-btn" data-char="]">]</button>
-                <button class="char-btn" data-char="(">(</button> <button class="char-btn" data-char=")">)</button>
-            </div>
-            <button id="fs-preview-btn" class="icon-btn"><svg><use href="#icon-preview"></use></svg></button>
-        </div>
-    </div>
-
-    <!-- Custom Context Menu -->
-    <div id="custom-context-menu" class="glass-panel">
-        <button id="ctx-copy">Copy</button>
-        <button id="ctx-cut">Cut</button>
-        <button id="ctx-paste">Paste</button>
-        <button id="ctx-select-all">Select All</button>
-    </div>
-
-
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- Element References ---
-        const splashScreen = document.getElementById('splash-screen');
-        const appContainer = document.getElementById('app-container');
-        
-        const htmlEditor = document.getElementById('html-editor');
-        const cssEditor = document.getElementById('css-editor');
-        const jsEditor = document.getElementById('js-editor');
-        const allEditors = [htmlEditor, cssEditor, jsEditor];
-        
-        const fsHtmlEditor = document.getElementById('fs-html-editor');
-        const fsCssEditor = document.getElementById('fs-css-editor');
-        const fsJsEditor = document.getElementById('fs-js-editor');
-        const allFsEditors = [fsHtmlEditor, fsCssEditor, fsJsEditor];
-
-        const previewWrapper = document.getElementById('preview-wrapper');
-        const previewFrame = document.getElementById('preview-frame');
-        const refreshBtn = document.getElementById('refresh-btn');
-        const fullscreenPreviewBtn = document.getElementById('fullscreen-preview-btn');
-        const mobileViewBtn = document.getElementById('mobile-view-btn');
-        const desktopViewBtn = document.getElementById('desktop-view-btn');
-
-        const miniEditorTabs = document.querySelectorAll('#mini-editor .tab-btn');
-        const fsEditorTabs = document.querySelectorAll('#fullscreen-editor-view .tab-btn');
-
-        const openFsEditorBtn = document.getElementById('open-fs-editor-btn');
-        const fullscreenEditorView = document.getElementById('fullscreen-editor-view');
-        const fsBackBtn = document.getElementById('fs-back-btn');
-        const fsSaveBtn = document.getElementById('fs-save-btn');
-        const fsImportBtn = document.getElementById('fs-import-btn');
-        const fsPreviewBtn = document.getElementById('fs-preview-btn');
-        
-        const importFileBtn = document.getElementById('import-file-btn');
-        const fileInput = document.getElementById('file-input');
-        const saveFileBtn = document.getElementById('save-file-btn');
-        const createFolderBtn = document.getElementById('create-folder-btn');
-        const fileList = document.getElementById('file-list');
-        
-        const contextMenu = document.getElementById('custom-context-menu');
-        const ctxCopy = document.getElementById('ctx-copy');
-        const ctxCut = document.getElementById('ctx-cut');
-        const ctxPaste = document.getElementById('ctx-paste');
-        const ctxSelectAll = document.getElementById('ctx-select-all');
-
-        let db;
-        let activeContextMenuEditor = null;
-
-        // --- Splash Screen ---
-        setTimeout(() => {
-            splashScreen.style.opacity = '0';
-            appContainer.classList.add('visible');
-            setTimeout(() => splashScreen.style.display = 'none', 500);
-        }, 2000);
-
-        // --- IndexedDB ---
-        function initDB() { /* ... unchanged ... */
-            const request = indexedDB.open('CodeLabDB', 2);
-            request.onerror = (event) => console.error("Database error:", event.target.errorCode);
-            request.onupgradeneeded = (event) => {
-                db = event.target.result;
-                if (!db.objectStoreNames.contains('codeStore')) db.createObjectStore('codeStore', { keyPath: 'id' });
-                if (!db.objectStoreNames.contains('fileStore')) db.createObjectStore('fileStore', { keyPath: 'name' });
-            };
-            request.onsuccess = (event) => {
-                db = event.target.result;
-                loadCodeFromDB();
-                renderFileList();
-            };
-        }
-        function saveCodeToDB() { /* ... unchanged ... */
-            if (!db) return;
-            const transaction = db.transaction(['codeStore'], 'readwrite');
-            const objectStore = transaction.objectStore('codeStore');
-            const code = {
-                id: 'currentCode', html: htmlEditor.value, css: cssEditor.value, js: jsEditor.value,
-            };
-            objectStore.put(code);
-        }
-        function loadCodeFromDB() { /* ... unchanged ... */
-            if (!db) return;
-            const request = db.transaction(['codeStore']).objectStore('codeStore').get('currentCode');
-            request.onsuccess = (event) => {
-                if (request.result) {
-                    htmlEditor.value = request.result.html || '';
-                    cssEditor.value = request.result.css || '';
-                    jsEditor.value = request.result.js || '';
-                    updatePreview();
-                }
-            };
-        }
-        
-        // --- Live Preview & View Modes ---
-        let debounceTimer;
-        async function updatePreview() {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(async () => {
-                let htmlCode = htmlEditor.value;
-                const files = await getAllFilesFromDB();
-                for (const file of files) {
-                    if (file.type !== 'folder') {
-                        const regex = new RegExp(`(src|href)=["'](./)?${file.name}["']`, "gi");
-                        htmlCode = htmlCode.replace(regex, `$1="${file.content}"`);
-                    }
-                }
-                const source = `<html><head><style>${cssEditor.value}</style></head><body>${htmlCode}<script>${jsEditor.value}<\/script></body></html>`;
-                previewFrame.srcdoc = source;
-            }, 300);
-        }
-        
-        refreshBtn.addEventListener('click', updatePreview);
-        [...allEditors, ...allFsEditors].forEach(editor => {
-            editor.addEventListener('input', () => {
-                syncEditorsOnInput(editor);
-                updatePreview();
-                saveCodeToDB();
-            });
-        });
-
-        mobileViewBtn.addEventListener('click', () => {
-            previewWrapper.classList.remove('preview-desktop-shape');
-            previewWrapper.classList.add('preview-mobile-shape');
-            mobileViewBtn.classList.add('active');
-            desktopViewBtn.classList.remove('active');
-        });
-
-        desktopViewBtn.addEventListener('click', () => {
-            previewWrapper.classList.remove('preview-mobile-shape');
-            previewWrapper.classList.add('preview-desktop-shape');
-            desktopViewBtn.classList.add('active');
-            mobileViewBtn.classList.remove('active');
-        });
-        fullscreenPreviewBtn.addEventListener('click', () => previewFrame.requestFullscreen?.());
-
-        // --- Editor Tabbing ---
-        function setupTabs(tabButtons, panes) {
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const tabName = button.dataset.tab;
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    panes.forEach(pane => {
-                        pane.classList.toggle('active', pane.id.includes(tabName));
-                    });
-                });
-            });
-        }
-        setupTabs(miniEditorTabs, allEditors);
-        setupTabs(fsEditorTabs, allFsEditors);
-
-        // --- Fullscreen Editor ---
-        function syncEditorsOnInput(sourceEditor) {
-            const isFs = allFsEditors.includes(sourceEditor);
-            const value = sourceEditor.value;
-            if (isFs) {
-                if (sourceEditor === fsHtmlEditor) htmlEditor.value = value;
-                if (sourceEditor === fsCssEditor) cssEditor.value = value;
-                if (sourceEditor === fsJsEditor) jsEditor.value = value;
-            } else {
-                if (sourceEditor === htmlEditor) fsHtmlEditor.value = value;
-                if (sourceEditor === cssEditor) fsCssEditor.value = value;
-                if (sourceEditor === jsEditor) fsJsEditor.value = value;
-            }
-        }
-        openFsEditorBtn.addEventListener('click', () => {
-            fullscreenEditorView.style.display = 'flex';
-        });
-        fsBackBtn.addEventListener('click', () => {
-            fullscreenEditorView.style.display = 'none';
-        });
-        fsSaveBtn.addEventListener('click', saveProjectToFile);
-        fsImportBtn.addEventListener('click', () => fileInput.click());
-        fsPreviewBtn.addEventListener('click', () => previewFrame.requestFullscreen?.());
-        document.querySelectorAll('#fs-bottom-bar .char-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const char = btn.dataset.char;
-                const activeFsEditor = document.querySelector('#fs-editor-container .code-editor.active');
-                if (activeFsEditor) {
-                    const start = activeFsEditor.selectionStart;
-                    const end = activeFsEditor.selectionEnd;
-                    activeFsEditor.value = activeFsEditor.value.substring(0, start) + char + activeFsEditor.value.substring(end);
-                    activeFsEditor.selectionStart = activeFsEditor.selectionEnd = start + 1;
-                    activeFsEditor.focus();
-                    activeFsEditor.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            });
-        });
-
-        // --- File Management ---
-        importFileBtn.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (event) => { /* ... unchanged ... */
-            for (const file of event.target.files) {
-                const reader = new FileReader();
-                const isCodeFile = /\.(html|css|js|txt)$/i.test(file.name);
-                reader.onload = (e) => {
-                    const content = e.target.result;
-                    if (isCodeFile) {
-                        const ext = file.name.split('.').pop().toLowerCase();
-                        if (ext === 'html') htmlEditor.value += content;
-                        else if (ext === 'css') cssEditor.value += content;
-                        else if (ext === 'js') jsEditor.value += content;
-                        else htmlEditor.value += content;
-                        updatePreview(); saveCodeToDB();
-                    }
-                    saveFileToDB(file.name, file.type, content);
-                };
-                isCodeFile ? reader.readAsText(file) : reader.readAsDataURL(file);
-            }
-            fileInput.value = '';
-        });
-        
-        function saveFileToDB(name, type, content) {
-            if (!db) return;
-            db.transaction(['fileStore'], 'readwrite').objectStore('fileStore').put({ name, type, content }).onsuccess = renderFileList;
-        }
-        function deleteFileFromDB(name) {
-            if (!db) return;
-            db.transaction(['fileStore'], 'readwrite').objectStore('fileStore').delete(name).onsuccess = renderFileList;
-        }
-        async function renameFileInDB(oldName, newName) {
-            if (!db || oldName === newName) return;
-            const tx = db.transaction(['fileStore'], 'readwrite');
-            const store = tx.objectStore('fileStore');
-            const fileReq = store.get(oldName);
-            fileReq.onsuccess = () => {
-                if (fileReq.result) {
-                    store.delete(oldName);
-                    fileReq.result.name = newName;
-                    store.put(fileReq.result).onsuccess = renderFileList;
-                }
-            };
-        }
-        function getAllFilesFromDB() {
-            return new Promise((resolve) => {
-                if (!db) return resolve([]);
-                const req = db.transaction(['fileStore']).objectStore('fileStore').getAll();
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => resolve([]);
-            });
-        }
-        async function renderFileList() {
-            fileList.innerHTML = '';
-            const files = await getAllFilesFromDB();
-            files.forEach(file => {
-                const li = document.createElement('li');
-                const isFolder = file.type === 'folder';
-                li.innerHTML = `
-                    <span class="file-item-name">
-                       <svg><use href="${isFolder ? '#icon-folder' : '#icon-file'}"></use></svg>
-                       <span class="file-name-text">${file.name}</span>
-                    </span>
-                    <div class="file-actions">
-                        ${!isFolder ? `<button class="rename-btn" title="Rename"><svg><use href="#icon-edit"></use></svg></button>` : ''}
-                        <button class="delete-btn" title="Delete"><svg><use href="#icon-delete"></use></svg></button>
+            <div class="features-grid">
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-icon">
+                        <img src="assets/ai_icon.png" alt="AI Intelligence">
                     </div>
-                `;
-                li.querySelector('.delete-btn').onclick = () => confirm(`Delete '${file.name}'?`) && deleteFileFromDB(file.name);
-                if (!isFolder) {
-                    li.querySelector('.rename-btn').onclick = () => {
-                        const newName = prompt("Enter new name:", file.name);
-                        if (newName && newName.trim() !== "") renameFileInDB(file.name, newName.trim());
-                    };
-                }
-                fileList.appendChild(li);
-            });
-        }
-        createFolderBtn.addEventListener('click', () => {
-            const name = prompt("Enter folder name:");
-            if (name && name.trim()) saveFileToDB(name.trim(), 'folder', null);
-        });
+                    <h3 class="feature-title">Advanced AI Intelligence</h3>
+                    <p class="feature-description">
+                        Leverage state-of-the-art neural networks and machine learning algorithms 
+                        to process complex data and generate intelligent insights.
+                    </p>
+                </div>
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-icon">
+                        <img src="assets/data_icon.png" alt="Data Processing">
+                    </div>
+                    <h3 class="feature-title">Real-time Data Processing</h3>
+                    <p class="feature-description">
+                        Process massive datasets in real-time with our optimized AI infrastructure, 
+                        delivering instant results and actionable intelligence.
+                    </p>
+                </div>
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+                    <div class="feature-icon">
+                        <img src="assets/tech_icon.png" alt="Automation">
+                    </div>
+                    <h3 class="feature-title">Intelligent Automation</h3>
+                    <p class="feature-description">
+                        Automate complex workflows and decision-making processes with our 
+                        intelligent automation engine that learns and adapts.
+                    </p>
+                </div>
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
+                    <div class="feature-icon">
+                        <svg class="feature-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Enterprise Security</h3>
+                    <p class="feature-description">
+                        Bank-grade security with end-to-end encryption, ensuring your data 
+                        and AI models remain protected at all times.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        // --- Save Project to File ---
-        async function saveProjectToFile() { /* ... unchanged ... */
-            const fileName = prompt("Enter file name:", "codelab-project.html");
-            if (!fileName) return;
-            let htmlCode = htmlEditor.value;
-            const files = await getAllFilesFromDB();
-            for (const file of files) {
-                if(file.type !== 'folder') {
-                    const regex = new RegExp(`(src|href)=["'](./)?${file.name}["']`, "gi");
-                    htmlCode = htmlCode.replace(regex, `$1="${file.content}"`);
-                }
-            }
-            const finalHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${fileName.replace('.html', '')}</title><style>${cssEditor.value}</style></head><body>${htmlCode}<script>${jsEditor.value}<\/script></body></html>`;
-            const blob = new Blob([finalHtml], { type: 'text/html' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = fileName;
-            a.click();
-            URL.revokeObjectURL(a.href);
-            alert('Project saved!');
-        }
-        saveFileBtn.addEventListener('click', saveProjectToFile);
-        
-        // --- Custom Context Menu Logic ---
-        function showContextMenu(event) {
-            event.preventDefault();
-            activeContextMenuEditor = event.target;
-            contextMenu.style.display = 'flex';
-            contextMenu.style.left = `${event.clientX}px`;
-            contextMenu.style.top = `${event.clientY}px`;
-        }
+    <!-- Product Demo Section -->
+    <section id="demo" class="demo">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">See NeuroNova AI in Action</h2>
+                <p class="section-subtitle">Experience the power of our AI platform through interactive demonstrations</p>
+            </div>
+            <div class="demo-content">
+                <div class="demo-preview" data-aos="zoom-in">
+                    <div class="demo-image">
+                        <img src="assets/background.jpg" alt="NeuroNova AI Dashboard" id="demo-thumbnail">
+                        <div class="play-button" id="play-demo">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="demo-features">
+                    <div class="demo-feature" data-aos="fade-left" data-aos-delay="100">
+                        <h4>Interactive Dashboard</h4>
+                        <p>Intuitive interface for managing AI models and monitoring performance</p>
+                    </div>
+                    <div class="demo-feature" data-aos="fade-left" data-aos-delay="200">
+                        <h4>Real-time Analytics</h4>
+                        <p>Live data visualization and insights powered by advanced AI algorithms</p>
+                    </div>
+                    <div class="demo-feature" data-aos="fade-left" data-aos-delay="300">
+                        <h4>Custom AI Models</h4>
+                        <p>Build and deploy custom AI models tailored to your specific needs</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        [...allEditors, ...allFsEditors].forEach(editor => editor.addEventListener('contextmenu', showContextMenu));
-        
-        window.addEventListener('click', () => {
-            contextMenu.style.display = 'none';
-        });
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="testimonials">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">What Our Clients Say</h2>
+                <p class="section-subtitle">Discover how NeuroNova AI is transforming businesses worldwide</p>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="testimonial-content">
+                        <div class="stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <p class="testimonial-text">
+                            "NeuroNova AI has completely transformed our data analysis capabilities. 
+                            The insights we're getting are unprecedented, and the automation has 
+                            saved us countless hours of manual work."
+                        </p>
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face" alt="Sarah Johnson">
+                        </div>
+                        <div class="author-info">
+                            <h4 class="author-name">Sarah Johnson</h4>
+                            <p class="author-title">CTO, TechCorp Solutions</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="testimonial-content">
+                        <div class="stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <p class="testimonial-text">
+                            "The AI models from NeuroNova are incredibly accurate and fast. 
+                            We've seen a 300% improvement in our prediction accuracy since 
+                            implementing their platform."
+                        </p>
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face" alt="Michael Chen">
+                        </div>
+                        <div class="author-info">
+                            <h4 class="author-name">Michael Chen</h4>
+                            <p class="author-title">Data Science Lead, InnovateLab</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card" data-aos="fade-up" data-aos-delay="300">
+                    <div class="testimonial-content">
+                        <div class="stars">
+                            <span>★★★★★</span>
+                        </div>
+                        <p class="testimonial-text">
+                            "Outstanding support and incredibly powerful AI capabilities. 
+                            NeuroNova AI has become an essential part of our business operations 
+                            and strategic decision-making process."
+                        </p>
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=60&h=60&fit=crop&crop=face" alt="Emily Rodriguez">
+                        </div>
+                        <div class="author-info">
+                            <h4 class="author-name">Emily Rodriguez</h4>
+                            <p class="author-title">CEO, FutureVision Analytics</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        ctxSelectAll.addEventListener('click', () => activeContextMenuEditor?.select());
-        ctxCopy.addEventListener('click', () => {
-             if (activeContextMenuEditor) {
-                const text = activeContextMenuEditor.value.substring(activeContextMenuEditor.selectionStart, activeContextMenuEditor.selectionEnd);
-                navigator.clipboard.writeText(text);
-            }
-        });
-        ctxCut.addEventListener('click', () => {
-            if (activeContextMenuEditor) {
-                const start = activeContextMenuEditor.selectionStart;
-                const end = activeContextMenuEditor.selectionEnd;
-                const text = activeContextMenuEditor.value.substring(start, end);
-                navigator.clipboard.writeText(text);
-                activeContextMenuEditor.value = activeContextMenuEditor.value.substring(0, start) + activeContextMenuEditor.value.substring(end);
-                activeContextMenuEditor.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-        });
-        ctxPaste.addEventListener('click', async () => {
-            if (activeContextMenuEditor) {
-                const text = await navigator.clipboard.readText();
-                const start = activeContextMenuEditor.selectionStart;
-                const end = activeContextMenuEditor.selectionEnd;
-                activeContextMenuEditor.value = activeContextMenuEditor.value.substring(0, start) + text + activeContextMenuEditor.value.substring(end);
-                activeContextMenuEditor.selectionStart = activeContextMenuEditor.selectionEnd = start + text.length;
-                activeContextMenuEditor.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-        });
-        
-        // Initialize DB on load
-        initDB();
-    });
-    </script>
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Choose Your Plan</h2>
+                <p class="section-subtitle">Flexible pricing options to suit businesses of all sizes</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="pricing-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="pricing-header">
+                        <h3 class="plan-name">Free</h3>
+                        <div class="plan-price">
+                            <span class="currency">$</span>
+                            <span class="amount">0</span>
+                            <span class="period">/month</span>
+                        </div>
+                    </div>
+                    <ul class="plan-features">
+                        <li>✓ Basic AI models</li>
+                        <li>✓ 1,000 API calls/month</li>
+                        <li>✓ Community support</li>
+                        <li>✓ Basic analytics</li>
+                        <li>✗ Custom models</li>
+                        <li>✗ Priority support</li>
+                    </ul>
+                    <a href="#contact" class="btn btn-outline">Get Started</a>
+                </div>
+                <div class="pricing-card featured" data-aos="fade-up" data-aos-delay="200">
+                    <div class="featured-badge">Most Popular</div>
+                    <div class="pricing-header">
+                        <h3 class="plan-name">Pro</h3>
+                        <div class="plan-price">
+                            <span class="currency">$</span>
+                            <span class="amount">99</span>
+                            <span class="period">/month</span>
+                        </div>
+                    </div>
+                    <ul class="plan-features">
+                        <li>✓ Advanced AI models</li>
+                        <li>✓ 100,000 API calls/month</li>
+                        <li>✓ Priority support</li>
+                        <li>✓ Advanced analytics</li>
+                        <li>✓ Custom model training</li>
+                        <li>✓ Team collaboration</li>
+                    </ul>
+                    <a href="#contact" class="btn btn-primary">Buy Now</a>
+                </div>
+                <div class="pricing-card" data-aos="fade-up" data-aos-delay="300">
+                    <div class="pricing-header">
+                        <h3 class="plan-name">Enterprise</h3>
+                        <div class="plan-price">
+                            <span class="currency">$</span>
+                            <span class="amount">499</span>
+                            <span class="period">/month</span>
+                        </div>
+                    </div>
+                    <ul class="plan-features">
+                        <li>✓ Enterprise AI models</li>
+                        <li>✓ Unlimited API calls</li>
+                        <li>✓ 24/7 dedicated support</li>
+                        <li>✓ Custom integrations</li>
+                        <li>✓ On-premise deployment</li>
+                        <li>✓ SLA guarantee</li>
+                    </ul>
+                    <a href="#contact" class="btn btn-outline">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Get in Touch</h2>
+                <p class="section-subtitle">Ready to revolutionize your business with AI? Let's talk!</p>
+            </div>
+            <div class="contact-content">
+                <div class="contact-form-container" data-aos="fade-right">
+                    <form class="contact-form" id="contact-form">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="message">Message</label>
+                            <textarea id="message" name="message" rows="5" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                    </form>
+                    <div class="success-message" id="success-message">
+                        <p>Thank you! Your message has been sent successfully.</p>
+                    </div>
+                </div>
+                <div class="contact-info" data-aos="fade-left">
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <div class="contact-details">
+                            <h4>Email Us</h4>
+                            <p>hello@neuronova-ai.com</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="contact-details">
+                            <h4>Visit Us</h4>
+                            <p>123 AI Innovation Drive<br>San Francisco, CA 94105</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                            </svg>
+                        </div>
+                        <div class="contact-details">
+                            <h4>Call Us</h4>
+                            <p>+1 (555) 123-4567</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <span class="logo-text">NeuroNova AI</span>
+                    </div>
+                    <p class="footer-description">
+                        Revolutionizing intelligence for the future with cutting-edge AI technology.
+                    </p>
+                    <div class="social-links">
+                        <a href="#" class="social-link" aria-label="Twitter">
+                            <svg fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="social-link" aria-label="LinkedIn">
+                            <svg fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="social-link" aria-label="GitHub">
+                            <svg fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4 class="footer-title">Product</h4>
+                    <ul class="footer-links">
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#demo">Demo</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#">API Documentation</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4 class="footer-title">Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4 class="footer-title">Stay Updated</h4>
+                    <p class="newsletter-text">Subscribe to our newsletter for the latest AI insights</p>
+                    <form class="newsletter-form" id="newsletter-form">
+                        <input type="email" placeholder="Enter your email" required>
+                        <button type="submit" class="btn btn-primary">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 NeuroNova AI. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Demo Modal -->
+    <div class="modal" id="demo-modal">
+        <div class="modal-content">
+            <span class="close" id="close-modal">&times;</span>
+            <div class="modal-body">
+                <h3>NeuroNova AI Demo</h3>
+                <div class="demo-video">
+                    <img src="assets/background.jpg" alt="Demo Preview">
+                    <p>Interactive demo coming soon! Experience the full power of NeuroNova AI with our comprehensive dashboard and real-time analytics.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
+
