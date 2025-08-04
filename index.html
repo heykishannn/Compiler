@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CodeLab AP</title>
+    <style>
+        /* --- Global Styles & Variables --- */
+        :root {
+            --primary-color: #39ff14;
+            --dark-bg: #1a1a1a;
+            --light-bg: #2b2b2b;
+            --text-color: #f0f0f0;
+            --glass-bg: rgba(40, 40, 40, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* --- Splash Screen --- */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--dark-bg);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1001;
+            transition: opacity 0.5s ease-in-out;
+        }
+        #splash-logo {
+            font-size: 5rem; color: var(--primary-color);
+            text-shadow: 0 0 5px var(--primary-color), 0 0 15px var(--primary-color), 0 0 30px var(--primary-color), 0 0 50px #000;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+        /* --- Main App Container --- */
+        #app-container {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            padding: 15px; gap: 15px;
+            opacity: 0; transform: scale(0.95);
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            overflow-y: auto;
+        }
+        #app-container.visible { opacity: 1; transform: scale(1); }
+
+        /* Glass Effect Helper Class */
+        .glass-panel {
+            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-radius: 15px; border: 1px solid var(--glass-border); padding: 15px;
+        }
+
+        /* --- Header --- */
+        .app-header { text-align: center; padding: 0; }
+        .app-header h1 { font-size: 2rem; font-weight: bold; color: var(--primary-color); text-shadow: 0 0 8px rgba(57, 255, 20, 0.7); }
+
+        /* --- Preview Container (Android/Desktop Shape) --- */
+        #preview-wrapper {
+            background: #111; border: 3px solid #444;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            display: flex; flex-direction: column;
+            transition: all 0.4s ease-in-out;
+        }
+        #preview-frame { width: 100%; border: none; background-color: #fff; }
+        
+        /* Shape styles */
+        .preview-mobile-shape { border-radius: 30px; padding: 10px; }
+        .preview-mobile-shape #preview-frame { height: 25vh; border-radius: 20px; }
+        .preview-desktop-shape { border-radius: 10px; padding: 5px; }
+        .preview-desktop-shape #preview-frame { height: 25vh; border-radius: 5px; }
+
+        #preview-controls { display: flex; justify-content: space-between; align-items: center; padding: 8px 15px 0 15px; }
+        #preview-controls .view-modes { display: flex; gap: 15px; }
+        .icon-btn { background: none; border: none; color: var(--text-color); cursor: pointer; padding: 5px; transition: color 0.3s, transform 0.3s; }
+        .icon-btn:hover, .icon-btn.active { color: var(--primary-color); transform: scale(1.1); }
+        .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
+
+        /* --- Mini Editor --- */
+        #mini-editor { display: flex; flex-direction: column; min-height: 200px; }
+        #editor-tabs { display: flex; gap: 5px; margin-bottom: -1px; }
+        .tab-btn { padding: 8px 15px; background: transparent; border: 1px solid var(--glass-border); border-bottom: none; color: var(--text-color); cursor: pointer; border-radius: 8px 8px 0 0; transition: background-color 0.3s, color 0.3s; }
+        .tab-btn.active { background: var(--light-bg); color: var(--primary-color); border-color: var(--primary-color); }
+        #editor-panes { flex-grow: 1; position: relative; }
+        .code-editor {
+            width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+            background: var(--light-bg); color: var(--text-color);
+            border: 1px solid var(--glass-border); border-radius: 0 8px 8px 8px; padding: 10px;
+            font-family: 'Courier New', Courier, monospace; font-size: 14px;
+            resize: none; outline: none; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
+        }
+        .code-editor.active { opacity: 1; visibility: visible; }
+
+        /* --- File Manager --- */
+        #file-manager { display: flex; flex-direction: column; gap: 10px; }
+        .file-manager-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .main-btn {
+            flex-grow: 1; padding: 12px; background: var(--primary-color); color: var(--dark-bg);
+            border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s; text-align: center;
+        }
+        .main-btn:hover { background-color: #2eff0b; transform: translateY(-2px); }
+        #fs-editor-btn-wrapper { width: 100%; }
+        #open-fs-editor-btn { width: 100%; }
+
+        #file-list { list-style: none; max-height: 150px; overflow-y: auto; background: var(--light-bg); border-radius: 8px; padding: 5px; }
+        #file-list li { display: flex; align-items: center; justify-content: space-between; padding: 5px 10px; border-radius: 5px; transition: background-color 0.2s; }
+        #file-list li:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .file-item-name { display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1; }
+        .file-item-name svg { width: 18px; height: 18px; fill: var(--primary-color); flex-shrink: 0; }
+        .file-actions { display: flex; gap: 5px; flex-shrink: 0; }
+        .file-actions button { background: none; border: none; color: var(--text-color); cursor: pointer; padding: 3px; }
+        .file-actions button svg { width: 16px; height: 16px; }
+
+        /* --- Full Screen Editor --- */
+        #fullscreen-editor-view {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark-bg);
+            z-index: 500; display: none; flex-direction: column;
+        }
+        .fullscreen-bar { display: flex; align-items: center; padding: 10px; background: var(--light-bg); flex-shrink: 0; }
+        #fs-top-bar { justify-content: space-between; }
+        #fs-top-bar .center-tools { display: flex; gap: 15px; }
+        #fs-editor-container { flex-grow: 1; position: relative; }
+        #fs-editor-container .code-editor { border-radius: 0; border: none; font-size: 16px; }
+        #fs-bottom-bar { justify-content: space-between; overflow-x: auto; }
+        #fs-bottom-bar .char-buttons { display: flex; gap: 8px; }
+        .char-btn {
+            background-color: #444; color: var(--text-color); border: none; border-radius: 5px;
+            padding: 10px 14px; font-size: 16px; font-family: 'Courier New', Courier, monospace; cursor: pointer;
+        }
+
+        /* --- Custom Context Menu --- */
+        #custom-context-menu {
+            position: absolute;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            width: 150px;
+        }
+        #custom-context-menu button {
+            background: var(--light-bg); color: var(--text-color); border: none;
+            padding: 12px; text-align: left; cursor: pointer;
+            border-bottom: 1px solid var(--glass-border);
+            transition: background-color 0.2s;
+        }
+        #custom-context-menu button:hover { background-color: var(--primary-color); color: var(--dark-bg); }
+        #custom-context-menu button:first-child { border-radius: 8px 8px 0 0; }
+        #custom-context-menu button:last-child { border-radius: 0 0 8px 8px; border-bottom: none; }
+
+        /* Utility classes */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- SVG Icons Definition -->
+    <svg class="hidden">
+        <defs>
+            <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></symbol>
+            <symbol id="icon-fullscreen" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></symbol>
+            <symbol id="icon-back" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></symbol>
+            <symbol id="icon-save" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></symbol>
+            <symbol id="icon-preview" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 10c-2.48 0-4.5-2.02-4.5-4.5S9.52 5.5 12 5.5s4.5 2.02 4.5 4.5-2.02 4.5-4.5 4.5zm0-7C10.62 7.5 9.5 8.62 9.5 10s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5S13.38 7.5 12 7.5z"/></symbol>
+            <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></symbol>
+            <symbol id="icon-file" viewBox="0 0 24 24"><path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z"/></symbol>
+            <symbol id="icon-delete" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+            <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
+            <symbol id="icon-mobile" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"></path></symbol>
+            <symbol id="icon-desktop" viewBox="0 0 24 24"><path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"></path></symbol>
+            <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></symbol>
+        </defs>
+    </svg>
+
+    <!-- Splash Screen -->
+    <div id="splash-screen"><div id="splash-logo">&lt;/&gt;</div></div>
+
+    <!-- Main Application -->
+    <div id="app-container">
+        <header class="app-header"><h1>CodeLab AP</h1></header>
+        
+        <div id="preview-wrapper" class="preview-mobile-shape">
+            <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+            <div id="preview-controls">
+                <button id="fullscreen-preview-btn" class="icon-btn" title="Full Screen Preview"><svg><use href="#icon-fullscreen"></use></svg></button>
+                <div class="view-modes">
+                    <button id="mobile-view-btn" class="icon-btn active" title="Mobile View"><svg><use href="#icon-mobile"></use></svg></button>
+                    <button id="desktop-view-btn" class="icon-btn" title="Desktop View"><svg><use href="#icon-desktop"></use></svg></button>
+                </div>
+                <button id="refresh-btn" class="icon-btn" title="Refresh Preview"><svg><use href="#icon-refresh"></use></svg></button>
+            </div>
+        </div>
+
+        <div id="mini-editor" class="glass-panel">
+            <div id="editor-tabs">
+                <button class="tab-btn active" data-tab="html">HTML</button>
+                <button class="tab-btn" data-tab="css">CSS</button>
+                <button class="tab-btn" data-tab="js">JS</button>
+            </div>
+            <div id="editor-panes">
+                <textarea id="html-editor" class="code-editor active" spellcheck="false" placeholder="HTML code yaha likhe..."></textarea>
+                <textarea id="css-editor" class="code-editor" spellcheck="false" placeholder="CSS code yaha likhe..."></textarea>
+                <textarea id="js-editor" class="code-editor" spellcheck="false" placeholder="JavaScript code yaha likhe..."></textarea>
+            </div>
+        </div>
+
+        <div id="file-manager" class="glass-panel">
+            <div class="file-manager-actions">
+                <button class="main-btn" id="import-file-btn">Import File</button>
+                <input type="file" id="file-input" class="hidden" multiple>
+                <button class="main-btn" id="save-file-btn">Save Project</button>
+            </div>
+            <div class="file-manager-actions"><button class="main-btn" id="create-folder-btn">Create Folder</button></div>
+            <ul id="file-list"></ul>
+        </div>
+
+        <div id="fs-editor-btn-wrapper"><button class="main-btn" id="open-fs-editor-btn">Full Screen Editor</button></div>
+    </div>
+    
+    <!-- Fullscreen Editor View -->
+    <div id="fullscreen-editor-view">
+        <div id="fs-top-bar" class="fullscreen-bar">
+            <button id="fs-back-btn" class="icon-btn"><svg><use href="#icon-back"></use></svg></button>
+            <div class="center-tools">
+                 <div id="fs-editor-tabs">
+                    <button class="tab-btn active" data-tab="html">HTML</button>
+                    <button class="tab-btn" data-tab="css">CSS</button>
+                    <button class="tab-btn" data-tab="js">JS</button>
+                </div>
+            </div>
+            <div>
+                <button id="fs-import-btn" class="icon-btn" title="Import File"><svg><use href="#icon-upload"></use></svg></button>
+                <button id="fs-save-btn" class="icon-btn" title="Save Project"><svg><use href="#icon-save"></use></svg></button>
+            </div>
+        </div>
+        <div id="fs-editor-container">
+            <textarea id="fs-html-editor" class="code-editor active" spellcheck="false"></textarea>
+            <textarea id="fs-css-editor" class="code-editor" spellcheck="false"></textarea>
+            <textarea id="fs-js-editor" class="code-editor" spellcheck="false"></textarea>
+        </div>
+        <div id="fs-bottom-bar" class="fullscreen-bar">
+            <div class="char-buttons">
+                <button class="char-btn" data-char="<">&lt;</button> <button class="char-btn" data-char="/">/</button>
+                <button class="char-btn" data-char=">">&gt;</button> <button class="char-btn" data-char="=">=</button>
+                <button class="char-btn" data-char='"'>"</button> <button class="char-btn" data-char="'">'</button>
+                <button class="char-btn" data-char="{">{</button> <button class="char-btn" data-char="}">}</button>
+                <button class="char-btn" data-char="[">[</button> <button class="char-btn" data-char="]">]</button>
+                <button class="char-btn" data-char="(">(</button> <button class="char-btn" data-char=")">)</button>
+            </div>
+            <button id="fs-preview-btn" class="icon-btn"><svg><use href="#icon-preview"></use></svg></button>
+        </div>
+    </div>
+
+    <!-- Custom Context Menu -->
+    <div id="custom-context-menu" class="glass-panel">
+        <button id="ctx-copy">Copy</button>
+        <button id="ctx-cut">Cut</button>
+        <button id="ctx-paste">Paste</button>
+        <button id="ctx-select-all">Select All</button>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Element References ---
+        const splashScreen = document.getElementById('splash-screen');
+        const appContainer = document.getElementById('app-container');
+        
+        const htmlEditor = document.getElementById('html-editor');
+        const cssEditor = document.getElementById('css-editor');
+        const jsEditor = document.getElementById('js-editor');
+        const allEditors = [htmlEditor, cssEditor, jsEditor];
+        
+        const fsHtmlEditor = document.getElementById('fs-html-editor');
+        const fsCssEditor = document.getElementById('fs-css-editor');
+        const fsJsEditor = document.getElementById('fs-js-editor');
+        const allFsEditors = [fsHtmlEditor, fsCssEditor, fsJsEditor];
+
+        const previewWrapper = document.getElementById('preview-wrapper');
+        const previewFrame = document.getElementById('preview-frame');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const fullscreenPreviewBtn = document.getElementById('fullscreen-preview-btn');
+        const mobileViewBtn = document.getElementById('mobile-view-btn');
+        const desktopViewBtn = document.getElementById('desktop-view-btn');
+
+        const miniEditorTabs = document.querySelectorAll('#mini-editor .tab-btn');
+        const fsEditorTabs = document.querySelectorAll('#fullscreen-editor-view .tab-btn');
+
+        const openFsEditorBtn = document.getElementById('open-fs-editor-btn');
+        const fullscreenEditorView = document.getElementById('fullscreen-editor-view');
+        const fsBackBtn = document.getElementById('fs-back-btn');
+        const fsSaveBtn = document.getElementById('fs-save-btn');
+        const fsImportBtn = document.getElementById('fs-import-btn');
+        const fsPreviewBtn = document.getElementById('fs-preview-btn');
+        
+        const importFileBtn = document.getElementById('import-file-btn');
+        const fileInput = document.getElementById('file-input');
+        const saveFileBtn = document.getElementById('save-file-btn');
+        const createFolderBtn = document.getElementById('create-folder-btn');
+        const fileList = document.getElementById('file-list');
+        
+        const contextMenu = document.getElementById('custom-context-menu');
+        const ctxCopy = document.getElementById('ctx-copy');
+        const ctxCut = document.getElementById('ctx-cut');
+        const ctxPaste = document.getElementById('ctx-paste');
+        const ctxSelectAll = document.getElementById('ctx-select-all');
+
+        let db;
+        let activeContextMenuEditor = null;
+
+        // --- Splash Screen ---
+        setTimeout(() => {
+            splashScreen.style.opacity = '0';
+            appContainer.classList.add('visible');
+            setTimeout(() => splashScreen.style.display = 'none', 500);
+        }, 2000);
+
+        // --- IndexedDB ---
+        function initDB() { /* ... unchanged ... */
+            const request = indexedDB.open('CodeLabDB', 2);
+            request.onerror = (event) => console.error("Database error:", event.target.errorCode);
+            request.onupgradeneeded = (event) => {
+                db = event.target.result;
+                if (!db.objectStoreNames.contains('codeStore')) db.createObjectStore('codeStore', { keyPath: 'id' });
+                if (!db.objectStoreNames.contains('fileStore')) db.createObjectStore('fileStore', { keyPath: 'name' });
+            };
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                loadCodeFromDB();
+                renderFileList();
+            };
+        }
+        function saveCodeToDB() { /* ... unchanged ... */
+            if (!db) return;
+            const transaction = db.transaction(['codeStore'], 'readwrite');
+            const objectStore = transaction.objectStore('codeStore');
+            const code = {
+                id: 'currentCode', html: htmlEditor.value, css: cssEditor.value, js: jsEditor.value,
+            };
+            objectStore.put(code);
+        }
+        function loadCodeFromDB() { /* ... unchanged ... */
+            if (!db) return;
+            const request = db.transaction(['codeStore']).objectStore('codeStore').get('currentCode');
+            request.onsuccess = (event) => {
+                if (request.result) {
+                    htmlEditor.value = request.result.html || '';
+                    cssEditor.value = request.result.css || '';
+                    jsEditor.value = request.result.js || '';
+                    updatePreview();
+                }
+            };
+        }
+        
+        // --- Live Preview & View Modes ---
+        let debounceTimer;
+        async function updatePreview() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                let htmlCode = htmlEditor.value;
+                const files = await getAllFilesFromDB();
+                for (const file of files) {
+                    if (file.type !== 'folder') {
+                        const regex = new RegExp(`(src|href)=["'](./)?${file.name}["']`, "gi");
+                        htmlCode = htmlCode.replace(regex, `$1="${file.content}"`);
+                    }
+                }
+                const source = `<html><head><style>${cssEditor.value}</style></head><body>${htmlCode}<script>${jsEditor.value}<\/script></body></html>`;
+                previewFrame.srcdoc = source;
+            }, 300);
+        }
+        
+        refreshBtn.addEventListener('click', updatePreview);
+        [...allEditors, ...allFsEditors].forEach(editor => {
+            editor.addEventListener('input', () => {
+                syncEditorsOnInput(editor);
+                updatePreview();
+                saveCodeToDB();
+            });
+        });
+
+        mobileViewBtn.addEventListener('click', () => {
+            previewWrapper.classList.remove('preview-desktop-shape');
+            previewWrapper.classList.add('preview-mobile-shape');
+            mobileViewBtn.classList.add('active');
+            desktopViewBtn.classList.remove('active');
+        });
+
+        desktopViewBtn.addEventListener('click', () => {
+            previewWrapper.classList.remove('preview-mobile-shape');
+            previewWrapper.classList.add('preview-desktop-shape');
+            desktopViewBtn.classList.add('active');
+            mobileViewBtn.classList.remove('active');
+        });
+        fullscreenPreviewBtn.addEventListener('click', () => previewFrame.requestFullscreen?.());
+
+        // --- Editor Tabbing ---
+        function setupTabs(tabButtons, panes) {
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabName = button.dataset.tab;
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    panes.forEach(pane => {
+                        pane.classList.toggle('active', pane.id.includes(tabName));
+                    });
+                });
+            });
+        }
+        setupTabs(miniEditorTabs, allEditors);
+        setupTabs(fsEditorTabs, allFsEditors);
+
+        // --- Fullscreen Editor ---
+        function syncEditorsOnInput(sourceEditor) {
+            const isFs = allFsEditors.includes(sourceEditor);
+            const value = sourceEditor.value;
+            if (isFs) {
+                if (sourceEditor === fsHtmlEditor) htmlEditor.value = value;
+                if (sourceEditor === fsCssEditor) cssEditor.value = value;
+                if (sourceEditor === fsJsEditor) jsEditor.value = value;
+            } else {
+                if (sourceEditor === htmlEditor) fsHtmlEditor.value = value;
+                if (sourceEditor === cssEditor) fsCssEditor.value = value;
+                if (sourceEditor === jsEditor) fsJsEditor.value = value;
+            }
+        }
+        openFsEditorBtn.addEventListener('click', () => {
+            fullscreenEditorView.style.display = 'flex';
+        });
+        fsBackBtn.addEventListener('click', () => {
+            fullscreenEditorView.style.display = 'none';
+        });
+        fsSaveBtn.addEventListener('click', saveProjectToFile);
+        fsImportBtn.addEventListener('click', () => fileInput.click());
+        fsPreviewBtn.addEventListener('click', () => previewFrame.requestFullscreen?.());
+        document.querySelectorAll('#fs-bottom-bar .char-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const char = btn.dataset.char;
+                const activeFsEditor = document.querySelector('#fs-editor-container .code-editor.active');
+                if (activeFsEditor) {
+                    const start = activeFsEditor.selectionStart;
+                    const end = activeFsEditor.selectionEnd;
+                    activeFsEditor.value = activeFsEditor.value.substring(0, start) + char + activeFsEditor.value.substring(end);
+                    activeFsEditor.selectionStart = activeFsEditor.selectionEnd = start + 1;
+                    activeFsEditor.focus();
+                    activeFsEditor.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+        });
+
+        // --- File Management ---
+        importFileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (event) => { /* ... unchanged ... */
+            for (const file of event.target.files) {
+                const reader = new FileReader();
+                const isCodeFile = /\.(html|css|js|txt)$/i.test(file.name);
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    if (isCodeFile) {
+                        const ext = file.name.split('.').pop().toLowerCase();
+                        if (ext === 'html') htmlEditor.value += content;
+                        else if (ext === 'css') cssEditor.value += content;
+                        else if (ext === 'js') jsEditor.value += content;
+                        else htmlEditor.value += content;
+                        updatePreview(); saveCodeToDB();
+                    }
+                    saveFileToDB(file.name, file.type, content);
+                };
+                isCodeFile ? reader.readAsText(file) : reader.readAsDataURL(file);
+            }
+            fileInput.value = '';
+        });
+        
+        function saveFileToDB(name, type, content) {
+            if (!db) return;
+            db.transaction(['fileStore'], 'readwrite').objectStore('fileStore').put({ name, type, content }).onsuccess = renderFileList;
+        }
+        function deleteFileFromDB(name) {
+            if (!db) return;
+            db.transaction(['fileStore'], 'readwrite').objectStore('fileStore').delete(name).onsuccess = renderFileList;
+        }
+        async function renameFileInDB(oldName, newName) {
+            if (!db || oldName === newName) return;
+            const tx = db.transaction(['fileStore'], 'readwrite');
+            const store = tx.objectStore('fileStore');
+            const fileReq = store.get(oldName);
+            fileReq.onsuccess = () => {
+                if (fileReq.result) {
+                    store.delete(oldName);
+                    fileReq.result.name = newName;
+                    store.put(fileReq.result).onsuccess = renderFileList;
+                }
+            };
+        }
+        function getAllFilesFromDB() {
+            return new Promise((resolve) => {
+                if (!db) return resolve([]);
+                const req = db.transaction(['fileStore']).objectStore('fileStore').getAll();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => resolve([]);
+            });
+        }
+        async function renderFileList() {
+            fileList.innerHTML = '';
+            const files = await getAllFilesFromDB();
+            files.forEach(file => {
+                const li = document.createElement('li');
+                const isFolder = file.type === 'folder';
+                li.innerHTML = `
+                    <span class="file-item-name">
+                       <svg><use href="${isFolder ? '#icon-folder' : '#icon-file'}"></use></svg>
+                       <span class="file-name-text">${file.name}</span>
+                    </span>
+                    <div class="file-actions">
+                        ${!isFolder ? `<button class="rename-btn" title="Rename"><svg><use href="#icon-edit"></use></svg></button>` : ''}
+                        <button class="delete-btn" title="Delete"><svg><use href="#icon-delete"></use></svg></button>
+                    </div>
+                `;
+                li.querySelector('.delete-btn').onclick = () => confirm(`Delete '${file.name}'?`) && deleteFileFromDB(file.name);
+                if (!isFolder) {
+                    li.querySelector('.rename-btn').onclick = () => {
+                        const newName = prompt("Enter new name:", file.name);
+                        if (newName && newName.trim() !== "") renameFileInDB(file.name, newName.trim());
+                    };
+                }
+                fileList.appendChild(li);
+            });
+        }
+        createFolderBtn.addEventListener('click', () => {
+            const name = prompt("Enter folder name:");
+            if (name && name.trim()) saveFileToDB(name.trim(), 'folder', null);
+        });
+
+        // --- Save Project to File ---
+        async function saveProjectToFile() { /* ... unchanged ... */
+            const fileName = prompt("Enter file name:", "codelab-project.html");
+            if (!fileName) return;
+            let htmlCode = htmlEditor.value;
+            const files = await getAllFilesFromDB();
+            for (const file of files) {
+                if(file.type !== 'folder') {
+                    const regex = new RegExp(`(src|href)=["'](./)?${file.name}["']`, "gi");
+                    htmlCode = htmlCode.replace(regex, `$1="${file.content}"`);
+                }
+            }
+            const finalHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${fileName.replace('.html', '')}</title><style>${cssEditor.value}</style></head><body>${htmlCode}<script>${jsEditor.value}<\/script></body></html>`;
+            const blob = new Blob([finalHtml], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            alert('Project saved!');
+        }
+        saveFileBtn.addEventListener('click', saveProjectToFile);
+        
+        // --- Custom Context Menu Logic ---
+        function showContextMenu(event) {
+            event.preventDefault();
+            activeContextMenuEditor = event.target;
+            contextMenu.style.display = 'flex';
+            contextMenu.style.left = `${event.clientX}px`;
+            contextMenu.style.top = `${event.clientY}px`;
+        }
+
+        [...allEditors, ...allFsEditors].forEach(editor => editor.addEventListener('contextmenu', showContextMenu));
+        
+        window.addEventListener('click', () => {
+            contextMenu.style.display = 'none';
+        });
+
+        ctxSelectAll.addEventListener('click', () => activeContextMenuEditor?.select());
+        ctxCopy.addEventListener('click', () => {
+             if (activeContextMenuEditor) {
+                const text = activeContextMenuEditor.value.substring(activeContextMenuEditor.selectionStart, activeContextMenuEditor.selectionEnd);
+                navigator.clipboard.writeText(text);
+            }
+        });
+        ctxCut.addEventListener('click', () => {
+            if (activeContextMenuEditor) {
+                const start = activeContextMenuEditor.selectionStart;
+                const end = activeContextMenuEditor.selectionEnd;
+                const text = activeContextMenuEditor.value.substring(start, end);
+                navigator.clipboard.writeText(text);
+                activeContextMenuEditor.value = activeContextMenuEditor.value.substring(0, start) + activeContextMenuEditor.value.substring(end);
+                activeContextMenuEditor.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        });
+        ctxPaste.addEventListener('click', async () => {
+            if (activeContextMenuEditor) {
+                const text = await navigator.clipboard.readText();
+                const start = activeContextMenuEditor.selectionStart;
+                const end = activeContextMenuEditor.selectionEnd;
+                activeContextMenuEditor.value = activeContextMenuEditor.value.substring(0, start) + text + activeContextMenuEditor.value.substring(end);
+                activeContextMenuEditor.selectionStart = activeContextMenuEditor.selectionEnd = start + text.length;
+                activeContextMenuEditor.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        });
+        
+        // Initialize DB on load
+        initDB();
+    });
+    </script>
+</body>
+</html>
