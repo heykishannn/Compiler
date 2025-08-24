@@ -33,19 +33,19 @@
 
         <main class="editor-preview-container">
              <header class="main-header">
-                <!-- इस बटन का नाम बदल दिया गया है ताकि यह स्पष्ट हो -->
-                <button id="toggle-explorer-btn" title="Toggle Files"><svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
-                <div class="logo"><h1>CodeVerse</h1></div>
-                <div class="controls">
+                <div class="header-left">
+                    <button id="toggle-explorer-btn" title="Toggle Files"><svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
+                    <div class="logo"><h1>CodeVerse</h1></div>
+                    <div class="separator"></div>
+                    <button id="console-btn" title="Toggle Console"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM6 16H4v-2h2v2zm3.5-6H6l2.5-4 2.5 4h-1.5v4H8v-4h1.5zM18 16h-6v-2h6v2z"/></svg></button>
                     <button id="run-btn" title="Run Code"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
-                    <button id="fs-editor-btn" title="Fullscreen Editor"><svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button>
-                    
-                    <div class="separator"></div>
-                    
-                    <button id="select-all-btn" title="Select All"><svg viewBox="0 0 24 24"><path d="M3 3h18v2H3V3zm0 4h18v2H3V7zm0 4h18v2H3v-2zm0 4h18v2H3v-2zm0 4h18v2H3v-2z"/></svg></button>
-                    
-                    <div class="separator"></div>
+                </div>
 
+                <div id="header-center-placeholder">
+                    <!-- आप यहाँ अपना कोड डाल सकते हैं -->
+                </div>
+
+                <div class="controls">
                     <button id="pc-view-btn" title="Desktop Preview"><svg viewBox="0 0 24 24"><path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/></svg></button>
                     <button id="mobile-view-btn" title="Mobile Preview"><svg viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg></button>
                     <button id="fs-preview-btn" title="Fullscreen Preview"><svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg></button>
@@ -54,6 +54,16 @@
             <div class="content-area">
                 <div class="code-container"><div id="editor-wrapper"><textarea id="main-editor"></textarea></div></div>
                 <div id="preview-container" class="preview-container"><div id="preview-wrapper"><iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe></div></div>
+                <div id="console-container" class="console-container hidden">
+                    <div class="console-header">
+                        <span>Console</span>
+                        <div class="console-actions">
+                            <button id="clear-console-btn" title="Clear Console"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
+                            <button id="close-console-btn" title="Close Console"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+                        </div>
+                    </div>
+                    <div id="console-output" class="console-output"></div>
+                </div>
             </div>
         </main>
     </div>
@@ -63,13 +73,8 @@
         <div class="dropdown-item" data-action="delete">Delete</div>
     </div>
 
-    <!-- Editor Context Menu -->
-    <div id="editor-context-menu" class="dropdown-menu hidden">
-        <div class="dropdown-item" data-action="cut">Cut</div>
-        <div class="dropdown-item" data-action="copy">Copy</div>
-        <div class="dropdown-item" data-action="paste">Paste</div>
-    </div>
+    <!-- कस्टम एडिटर मेन्यू हटा दिया गया है -->
     
     <script src="script.js"></script>
 </body>
-</html>
+    </html>
