@@ -1,6 +1,6 @@
 :root {
     --bg-primary: #1E1E1E; --bg-secondary: #252526; --bg-tertiary: #333333;
-    --bg-explorer: rgba(218, 165, 32, 0.1); --border-explorer: #DAA520;
+    --bg-explorer: rgba(255, 255, 255, 0.08); --border-explorer: #555555;
     --text-primary: #CCCCCC; --text-secondary: #8F8F8F;
     --accent-blue: #007ACC; --accent-red: #D16969; --border-color: #3C3C3C;
     --font-primary: 'Poppins', sans-serif; --font-code: 'Fira Code', monospace;
@@ -8,22 +8,22 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body { font-family: var(--font-primary); background: var(--bg-primary); color: var(--text-primary); height: 100vh; width: 100vw; overflow: hidden; }
-.main-wrapper { display: flex; height: 100%; width: 100%; }
+.main-wrapper { display: flex; height: 100%; width: 100%; transition: margin-left 0.3s ease; }
 .hidden { display: none !important; }
 
 /* File Manager */
 .file-manager-container { display: flex; flex-direction: column; height: 100%; background: var(--bg-explorer); backdrop-filter: blur(10px); border-right: 1px solid var(--border-explorer); }
 .file-manager-header { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid var(--border-explorer); flex-shrink: 0; }
 #back-btn { background: none; border: none; color: var(--text-primary); padding: 8px; cursor: pointer; }
-#current-path-display { font-family: var(--font-code); margin: 0 8px; flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--border-explorer); }
+#current-path-display { font-family: var(--font-code); margin: 0 8px; flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
 .file-actions { display: flex; gap: 8px; }
 .file-actions button { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; }
-.file-actions button:hover svg { color: var(--border-explorer); }
+.file-actions button:hover svg { color: var(--accent-blue); }
 .file-actions svg { width: 22px; height: 22px; fill: currentColor; transition: color 0.2s; }
 .file-list { list-style: none; overflow-y: auto; flex-grow: 1; padding: 8px; }
 .file-item { display: flex; align-items: center; padding: 10px 8px; border-radius: 4px; transition: background-color 0.2s; user-select: none; }
-.file-item:hover { background-color: rgba(218, 165, 32, 0.2); }
-.file-item.active { background-color: var(--border-explorer); color: black; }
+.file-item:hover { background-color: rgba(255, 255, 255, 0.15); }
+.file-item.active { background-color: var(--accent-blue); color: white; }
 .file-icon { margin-right: 10px; width: 20px; height: 20px; fill: currentColor; flex-shrink: 0; }
 .file-name { flex-grow: 1; cursor: pointer; }
 .file-options-btn { background: none; border: none; color: inherit; padding: 4px 8px; cursor: pointer; margin-left: auto; }
@@ -31,67 +31,62 @@ body { font-family: var(--font-primary); background: var(--bg-primary); color: v
 
 /* Desktop & Mobile Explorers */
 .desktop-file-explorer { width: 300px; flex-shrink: 0; transition: width 0.3s ease; }
+/* --- फ़ाइल एक्सप्लोरर को छिपाने के लिए नई क्लास --- */
+.main-wrapper.explorer-collapsed .desktop-file-explorer { width: 0; }
 .mobile-file-manager { position: fixed; top: 0; left: 0; width: 300px; height: 100%; z-index: 2000; transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
 .mobile-file-manager.open { transform: translateX(0); box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
 .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; }
-.mobile-only-btn, .fs-editor-only-btn { display: none; background: none; border: none; color: var(--text-primary); padding: 8px; }
-
-/* Menus */
-.dropdown-menu { position: fixed; background-color: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 2001; min-width: 120px; }
-.dropdown-item { padding: 8px 16px; cursor: pointer; border-radius: 4px; font-size: 14px; white-space: nowrap; }
-.dropdown-item:hover { background-color: var(--accent-blue); color: white; }
-.dropdown-item[data-action="delete"]:hover { background-color: var(--accent-red); }
-#editor-context-menu { display: flex; padding: 4px; min-width: fit-content; }
-#editor-context-menu .dropdown-item { padding: 6px 12px; }
-#editor-context-menu .dropdown-item:not(:last-child) { border-right: 1px solid var(--border-color); border-radius: 4px 0 0 4px; }
-#editor-context-menu .dropdown-item:last-child{ border-radius: 0 4px 4px 0; }
 
 /* Main Content */
 .editor-preview-container { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
-.main-header { display: flex; align-items: center; padding: 0 24px; height: 56px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); }
-.logo h1 { font-size: 1.5em; color: var(--text-primary); }
+.main-header { display: flex; align-items: center; padding: 0 16px; height: 56px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); }
+.logo h1 { font-size: 1.5em; color: var(--text-primary); margin-left: 16px; }
 .controls { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.controls button { background-color: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
-.controls button:hover { background-color: var(--accent-blue); border-color: var(--accent-blue); }
-.controls button svg { width: 20px; height: 20px; fill: currentColor; display: block; }
+.controls button, #toggle-explorer-btn { color: white; border: none; padding: 8px; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+.controls button svg, #toggle-explorer-btn svg { width: 20px; height: 20px; fill: currentColor; display: block; }
 .separator { width: 1px; height: 24px; background-color: var(--border-color); margin: 0 8px; }
+
+/* --- नए रंगीन बटन --- */
+#toggle-explorer-btn { background-color: #5a5a5a; }
+#run-btn { background-color: #28a745; }
+#fs-editor-btn { background-color: #6f42c1; }
+#select-all-btn { background-color: #fd7e14; }
+#pc-view-btn { background-color: #007bff; }
+#mobile-view-btn { background-color: #17a2b8; }
+#fs-preview-btn { background-color: #6f42c1; }
+.controls button:hover, #toggle-explorer-btn:hover { filter: brightness(1.2); }
 
 .content-area { display: flex; flex-grow: 1; overflow: hidden; position: relative; }
 .code-container { width: 50%; height: 100%; border-right: 1px solid var(--border-color); }
 #editor-wrapper { height: 100%; }
 .CodeMirror { height: 100% !important; font-family: var(--font-code); font-size: 15px; }
-.cm-s-ayu-dark.CodeMirror { background: var(--bg-primary); }
+.cm-s-dracula.CodeMirror { background: #282a36; }
 
-/* --- Preview Area (THE FIX) --- */
-.preview-container { width: 50%; height: 100%; display: flex; justify-content: center; align-items: center; padding: 16px; background: linear-gradient(45deg, #1D2B34, #1E1E1E); overscroll-behavior: contain; overflow: hidden; }
-#preview-wrapper { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
-#preview-frame { width: 100%; height: 100%; border: none; background-color: #fff; }
+/* --- प्रीव्यू एरिया का सुधार (स्केलिंग के लिए) --- */
+.preview-container { width: 50%; height: 100%; display: flex; justify-content: center; align-items: center; padding: 16px; background: linear-gradient(45deg, #1D2B34, #1E1E1E); overflow: hidden; }
+#preview-wrapper { display: flex; justify-content: center; align-items: center; transition: height 0.2s ease; }
+#preview-frame { border: none; background-color: #fff; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
 
-#preview-wrapper.mobile-mode #preview-frame { max-width: 375px; max-height: 844px; border: 12px solid #111; border-radius: 40px; box-shadow: 0 0 30px rgba(0,0,0,0.5); flex-shrink: 0; }
-#preview-wrapper.desktop-scaled-mode { position: relative; border: 1px solid var(--border-color); overflow: hidden; }
+/* मोबाइल मोड */
+#preview-wrapper.mobile-mode { width: 375px; height: 844px; }
+#preview-wrapper.mobile-mode #preview-frame { width: 100%; height: 100%; border: 12px solid #111; border-radius: 40px; }
+
+/* पीसी स्केल्ड मोड */
+#preview-wrapper.desktop-scaled-mode { position: relative; width: 100%; /* यह महत्वपूर्ण है */ }
 #preview-wrapper.desktop-scaled-mode #preview-frame { position: absolute; top: 0; left: 0; width: 1280px; height: 720px; transform-origin: top left; }
 
-/* Fullscreen */
-#preview-container:fullscreen { padding: 0; }
-
-/* Fullscreen Editor */
-.main-wrapper.editor-fullscreen .desktop-file-explorer { width: 0; border: none; }
-.main-wrapper.editor-fullscreen .preview-container { width: 0; padding: 0; }
-.main-wrapper.editor-fullscreen .code-container { width: 100%; border: none; }
-.main-wrapper.editor-fullscreen .fs-editor-only-btn { display: block; }
-.main-wrapper.editor-fullscreen .desktop-file-explorer.fs-open { position: absolute; z-index: 100; width: 300px; height: 100%; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
-.main-wrapper.editor-fullscreen.fs-files-open .code-container { margin-left: 300px; width: calc(100% - 300px); }
+/* Menus */
+.dropdown-menu { position: fixed; background-color: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 2001; min-width: 120px; }
+.dropdown-item { padding: 8px 16px; cursor: pointer; border-radius: 4px; font-size: 14px; white-space: nowrap; }
+.dropdown-item:hover { background-color: var(--accent-blue); color: white; }
 
 /* Mobile Responsiveness */
 @media (max-width: 800px) {
-    body { overflow-y: auto; }
     .main-wrapper { flex-direction: column; height: auto; min-height: 100vh; }
     .desktop-file-explorer { display: none; }
-    .mobile-only-btn { display: block; }
-    #fs-editor-btn { display: none; }
     .main-header { padding: 0 12px; }
     .logo { display: none; }
     .content-area { flex-direction: column; }
     .code-container { width: 100%; height: 60vh; border-right: none; border-bottom: 1px solid var(--border-color); }
     .preview-container { width: 100%; height: 80vh; padding: 24px 16px; }
-                  }
+    }
