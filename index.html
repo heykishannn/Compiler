@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/ayu-dark.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/dracula.min.css">
     
     <!-- LIBRARIES -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
@@ -33,8 +33,8 @@
 
         <main class="editor-preview-container">
              <header class="main-header">
-                <button id="toggle-files-btn-mobile" class="mobile-only-btn" title="Toggle Files"><svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
-                <button id="toggle-files-btn-fs" class="fs-editor-only-btn hidden" title="Toggle Files"><svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
+                <!-- इस बटन का नाम बदल दिया गया है ताकि यह स्पष्ट हो -->
+                <button id="toggle-explorer-btn" title="Toggle Files"><svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
                 <div class="logo"><h1>CodeVerse</h1></div>
                 <div class="controls">
                     <button id="run-btn" title="Run Code"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
@@ -72,4 +72,4 @@
     
     <script src="script.js"></script>
 </body>
-                                                                               </html>
+</html>
