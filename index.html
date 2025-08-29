@@ -1,201 +1,87 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Code Compiler</title>
+    <title>प्रोफ़ेशनल कोड एडिटर</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Top Bar -->
-    <div class="top-bar">
-        <div class="top-bar-left">
-            <button id="menu-btn" class="btn menu-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-            </button>
-            <button id="console-btn" class="btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="4,17 10,11 4,5"></polyline>
-                    <line x1="12" y1="19" x2="20" y2="19"></line>
-                </svg>
-                Console
-            </button>
-            <button id="run-btn" class="btn run-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="5,3 19,12 5,21"></polygon>
-                </svg>
-                Run
-            </button>
-        </div>
-        <div class="top-bar-right">
-            <button id="fullscreen-pc-btn" class="btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
-                </svg>
-                PC Full
-            </button>
-            <button id="pc-preview-btn" class="btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
-                </svg>
-                PC
-            </button>
-            <button id="mobile-preview-btn" class="btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                    <line x1="12" y1="18" x2="12.01" y2="18"></line>
-                </svg>
-                Mobile
-            </button>
-            <button id="fullscreen-mobile-btn" class="btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                    <line x1="12" y1="18" x2="12.01" y2="18"></line>
-                </svg>
-                Mobile Full
-            </button>
-        </div>
-    </div>
-
-    <!-- Main Container -->
-    <div class="main-container">
-        <!-- File Sidebar -->
-        <div id="file-sidebar" class="file-sidebar">
-            <div class="sidebar-header">
-                <h3>Files</h3>
-                <div class="sidebar-actions">
-                    <button id="new-file-btn" class="icon-btn" title="New File">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"></path>
-                        </svg>
-                    </button>
-                    <button id="new-folder-btn" class="icon-btn" title="New Folder">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"></path>
-                        </svg>
-                    </button>
-                    <button id="import-btn" class="icon-btn" title="Import Files">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7,10 12,15 17,10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                    </button>
-                </div>
+    <div class="app-container">
+        <!-- टॉप बार -->
+        <header class="top-bar">
+            <div class="left-controls">
+                <button id="menu-btn" title="फ़ाइलें दिखाएँ/छिपाएँ">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"></path></svg>
+                </button>
+                <span class="file-title" id="current-file-title">Untitled.html</span>
             </div>
-            <div id="file-tree" class="file-tree">
-                <!-- File tree will be populated by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Content Area -->
-        <div class="content-area">
-            <!-- Editor Section -->
-            <div class="editor-section">
-                <div class="editor-header">
-                    <span id="current-file">No file selected</span>
-                    <div class="editor-actions">
-                        <button id="save-btn" class="icon-btn" title="Save">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                                <polyline points="17,21 17,13 7,13 7,21"></polyline>
-                                <polyline points="7,3 7,8 15,8"></polyline>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="editor-container">
-                    <div class="line-numbers" id="line-numbers">1</div>
-                    <textarea id="code-editor" class="code-editor" placeholder="Start coding..."></textarea>
-                </div>
-            </div>
-
-            <!-- Console Section -->
-            <div id="console-section" class="console-section hidden">
-                <div class="console-header">
-                    <span>Console</span>
-                    <button id="clear-console-btn" class="icon-btn" title="Clear Console">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3,6 5,6 21,6"></polyline>
-                            <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
-                        </svg>
-                    </button>
-                </div>
-                <div id="console-output" class="console-output"></div>
-            </div>
-
-            <!-- Mini Preview Section -->
-            <div class="mini-preview-section">
-                <div class="mini-preview-header">
-                    <span>Preview</span>
-                    <div class="preview-mode-toggle">
-                        <button id="mini-pc-btn" class="mode-btn active">PC</button>
-                        <button id="mini-mobile-btn" class="mode-btn">Mobile</button>
-                    </div>
-                </div>
-                <div class="mini-preview-container">
-                    <iframe id="mini-preview" class="mini-preview pc-mode"></iframe>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Full Screen Preview Overlay -->
-    <div id="fullscreen-overlay" class="fullscreen-overlay hidden">
-        <div class="fullscreen-header">
-            <button id="close-fullscreen-btn" class="btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-                Close
-            </button>
-        </div>
-        <iframe id="fullscreen-preview" class="fullscreen-preview"></iframe>
-    </div>
-
-    <!-- Context Menu -->
-    <div id="context-menu" class="context-menu hidden">
-        <div class="context-item" data-action="rename">Rename</div>
-        <div class="context-item" data-action="delete">Delete</div>
-        <div class="context-item" data-action="move">Move</div>
-        <div class="context-item" data-action="duplicate">Duplicate</div>
-    </div>
-
-    <!-- Modal Dialogs -->
-    <div id="modal-overlay" class="modal-overlay hidden">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modal-title">Modal Title</h3>
-                <button id="modal-close-btn" class="icon-btn">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
+            <div class="right-controls">
+                <button id="console-btn" title="कंसोल">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM5 16l3.5-4.5L12 17l3.5-4.5L19 16H5z"></path></svg>
+                </button>
+                <button id="run-btn" title="कोड चलाएँ (Ctrl+S)">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+                </button>
+                <button id="pc-mode-btn" title="डेस्कटॉप प्रीव्यू">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"></path></svg>
+                </button>
+                <button id="mobile-mode-btn" title="मोबाइल प्रीव्यू">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"></path></svg>
+                </button>
+                <button id="fullscreen-btn" title="फुल-स्क्रीन प्रीव्यू">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"></path></svg>
                 </button>
             </div>
-            <div class="modal-body" id="modal-body">
-                <!-- Modal content will be populated by JavaScript -->
+        </header>
+
+        <!-- मुख्य कंटेंट क्षेत्र -->
+        <main class="main-content">
+            <!-- फ़ाइल एक्सप्लोरर -->
+            <aside id="file-explorer" class="file-explorer">
+                <div class="file-explorer-header">
+                    <span>फ़ाइलें</span>
+                    <div class="file-actions">
+                        <button id="new-file-btn" title="नई फ़ाइल">+</button>
+                        <button id="import-file-btn" title="फ़ाइल इम्पोर्ट करें">↑</button>
+                    </div>
+                </div>
+                <ul id="file-list"></ul>
+            </aside>
+
+            <!-- एडिटर और प्रीव्यू -->
+            <div class="editor-area">
+                <div class="editor-container">
+                    <div class="line-numbers" id="line-numbers">1</div>
+                    <textarea id="editor" spellcheck="false" autocomplete="off"></textarea>
+                </div>
+                <div class="preview-container resizable">
+                    <div class="preview-header">
+                        <span>प्रीव्यू</span>
+                    </div>
+                    <iframe id="preview-window"></iframe>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button id="modal-cancel-btn" class="btn">Cancel</button>
-                <button id="modal-confirm-btn" class="btn primary">Confirm</button>
+        </main>
+
+        <!-- कंसोल आउटपुट -->
+        <footer id="console-output" class="console-output">
+            <div class="console-header">
+                <span>कंसोल</span>
+                <button id="close-console-btn" title="कंसोल बंद करें">×</button>
             </div>
-        </div>
+            <div id="console-messages"></div>
+        </footer>
     </div>
 
-    <!-- Hidden File Input -->
-    <input type="file" id="file-input" multiple style="display: none;">
-
+    <!-- अपना कस्टम कॉन्टेक्स्ट मेनू -->
+    <div id="custom-context-menu">
+        <div class="context-item" id="ctx-cut">कट करें</div>
+        <div class="context-item" id="ctx-copy">कॉपी करें</div>
+        <div class="context-item" id="ctx-paste">पेस्ट करें</div>
+        <div class="context-item" id="ctx-select-all">सभी चुनें</div>
+    </div>
+    
     <script src="script.js"></script>
 </body>
 </html>
-
