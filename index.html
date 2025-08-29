@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Code Compiler</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <button id="menu-btn" class="btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <button id="console-btn" class="btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4,17 10,11 4,5"></polyline>
+                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                </svg>
+                Console
+            </button>
+            <button id="run-btn" class="btn btn-primary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5,3 19,12 5,21"></polygon>
+                </svg>
+                Run
+            </button>
+        </div>
+        <div class="top-bar-right">
+            <button id="fullscreen-btn" class="btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+            </button>
+            <button id="pc-preview-btn" class="btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                PC
+            </button>
+            <button id="mobile-preview-btn" class="btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                    <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                </svg>
+                Mobile
+            </button>
+            <button id="fullscreen-preview-btn" class="btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+                Full
+            </button>
+        </div>
+    </div>
+
+    <!-- File Management Sidebar -->
+    <div id="file-sidebar" class="file-sidebar hidden">
+        <div class="sidebar-header">
+            <h3>Files</h3>
+            <button id="close-sidebar" class="btn-close">×</button>
+        </div>
+        <div class="sidebar-actions">
+            <button id="create-file-btn" class="btn btn-small">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14,2 14,8 20,8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+                New File
+            </button>
+            <button id="create-folder-btn" class="btn btn-small">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    <line x1="12" y1="11" x2="12" y2="17"></line>
+                    <line x1="9" y1="14" x2="15" y2="14"></line>
+                </svg>
+                New Folder
+            </button>
+            <button id="import-file-btn" class="btn btn-small">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7,10 12,15 17,10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Import
+            </button>
+        </div>
+        <div class="file-tree" id="file-tree">
+            <!-- File tree will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Code Editor -->
+        <div class="editor-container">
+            <div class="editor-header">
+                <span id="current-file">index.html</span>
+                <div class="editor-actions">
+                    <button id="save-btn" class="btn btn-small">Save</button>
+                </div>
+            </div>
+            <div class="editor-wrapper">
+                <div class="line-numbers" id="line-numbers">1</div>
+                <textarea id="code-editor" class="code-editor" placeholder="Start coding..."></textarea>
+            </div>
+        </div>
+
+        <!-- Mini Preview -->
+        <div class="mini-preview-container">
+            <div class="preview-header">
+                <span>Preview</span>
+                <div class="preview-controls">
+                    <button id="preview-pc-btn" class="btn btn-small active">PC</button>
+                    <button id="preview-mobile-btn" class="btn btn-small">Mobile</button>
+                </div>
+            </div>
+            <div class="preview-wrapper">
+                <iframe id="mini-preview" class="mini-preview"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Console -->
+    <div id="console-panel" class="console-panel hidden">
+        <div class="console-header">
+            <span>Console</span>
+            <button id="clear-console" class="btn btn-small">Clear</button>
+            <button id="close-console" class="btn-close">×</button>
+        </div>
+        <div class="console-content" id="console-content">
+            <div class="console-message">Console ready...</div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Preview Modal -->
+    <div id="fullscreen-modal" class="fullscreen-modal hidden">
+        <div class="fullscreen-header">
+            <div class="fullscreen-controls">
+                <button id="fullscreen-pc-btn" class="btn">PC Mode</button>
+                <button id="fullscreen-mobile-btn" class="btn">Mobile Mode</button>
+            </div>
+            <button id="close-fullscreen" class="btn-close">×</button>
+        </div>
+        <div class="fullscreen-content">
+            <iframe id="fullscreen-preview" class="fullscreen-preview"></iframe>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden">
+        <div class="context-item" data-action="select-all">Select All</div>
+        <div class="context-item" data-action="copy">Copy</div>
+        <div class="context-item" data-action="cut">Cut</div>
+        <div class="context-item" data-action="paste">Paste</div>
+    </div>
+
+    <!-- File Input for Import -->
+    <input type="file" id="file-input" multiple accept="*/*" style="display: none;">
+
+    <!-- Rename Modal -->
+    <div id="rename-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Rename</h3>
+            <input type="text" id="rename-input" placeholder="Enter new name">
+            <div class="modal-actions">
+                <button id="rename-confirm" class="btn btn-primary">Rename</button>
+                <button id="rename-cancel" class="btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create File/Folder Modal -->
+    <div id="create-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="create-modal-title">Create File</h3>
+            <input type="text" id="create-input" placeholder="Enter name">
+            <div class="modal-actions">
+                <button id="create-confirm" class="btn btn-primary">Create</button>
+                <button id="create-cancel" class="btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
