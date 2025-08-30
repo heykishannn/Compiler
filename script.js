@@ -1,183 +1,298 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // DOM एलिमेंट्स
-    const editor = document.getElementById('editor');
-    const previewWindow = document.getElementById('preview-window');
-    const lineNumbers = document.getElementById('line-numbers');
-    const runBtn = document.getElementById('run-btn');
-    const menuBtn = document.getElementById('menu-btn');
-    const fileExplorer = document.getElementById('file-explorer');
-    const consoleBtn = document.getElementById('console-btn');
-    const consoleOutput = document.getElementById('console-output');
-    const closeConsoleBtn = document.getElementById('close-console-btn');
-    const consoleMessages = document.getElementById('console-messages');
-    
-    const newFileBtn = document.getElementById('new-file-btn');
-    const fileList = document.getElementById('file-list');
-    const currentFileTitle = document.getElementById('current-file-title');
-    
-    // IndexedDB सेटअप
+document.addEventListener('DOMContentLoaded', async () => {
+    function debounce(func, delay) {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    const dom = {
+        outputFrame: document.getElementById('output'),
+        iframeWrapper: document.getElementById('iframe-wrapper'),
+        consolePanel: document.getElementById('console-panel'),
+        editorPanes: document.querySelector('.editor-panes'),
+        fileList: document.getElementById('file-list'),
+        sidebar: document.getElementById('file-manager'),
+        contextMenu: document.getElementById('context-menu'),
+        fileImporter: document.getElementById('file-importer'),
+        editorTabs: document.getElementById('editor-tabs'),
+    };
+
+    let activeEditor = null;
+    let openFiles = new Map();
     let db;
-    let currentFile = 'Untitled.html';
-    const request = indexedDB.open('proCodeEditorDB', 1);
 
-    request.onupgradeneeded = e => {
-        db = e.target.result;
-        if (!db.objectStoreNames.contains('files')) {
-            db.createObjectStore('files', { keyPath: 'name' });
-        }
-    };
-    request.onsuccess = e => {
-        db = e.target.result;
-        loadFiles();
-        loadFileContent(currentFile);
-    };
-    request.onerror = e => console.error('IndexedDB error:', e.target.errorCode);
+    const dbName = 'ProDevEditorDB';
+    const fileStore = 'files';
 
-    // फ़ाइल फंक्शन्स
-    const saveFile = (name, content) => {
-        const transaction = db.transaction(['files'], 'readwrite');
-        const store = transaction.objectStore('files');
-        store.put({ name, content });
-    };
-
-    const loadFileContent = (name) => {
-        const transaction = db.transaction(['files']);
-        const store = transaction.objectStore('files');
-        const request = store.get(name);
-        request.onsuccess = e => {
-            if (e.target.result) {
-                editor.value = e.target.result.content;
-            } else {
-                editor.value = '<!-- Welcome to your new file -->';
-            }
-            currentFile = name;
-            currentFileTitle.textContent = name;
-            updateEditor();
-            highlightActiveFile();
-        };
-    };
-
-    const loadFiles = () => {
-        const transaction = db.transaction(['files']);
-        const store = transaction.objectStore('files');
-        const request = store.getAll();
-        request.onsuccess = e => {
-            fileList.innerHTML = '';
-            const files = e.target.result;
-            if (files.length === 0) {
-                 saveFile(currentFile, '<h1>Hello, World!</h1>');
-                 loadFiles(); // Reload to show the new file
-            }
-            files.forEach(file => {
-                const li = document.createElement('li');
-                li.textContent = file.name;
-                li.onclick = () => loadFileContent(file.name);
-                fileList.appendChild(li);
-            });
-            highlightActiveFile();
-        };
-    };
-
-    newFileBtn.addEventListener('click', () => {
-        const fileName = prompt('नई फ़ाइल का नाम:', 'new.html');
-        if (fileName) {
-            saveFile(fileName, '');
-            loadFileContent(fileName);
-            loadFiles();
-        }
-    });
-    
-    function highlightActiveFile() {
-        document.querySelectorAll('#file-list li').forEach(li => {
-            li.classList.toggle('active', li.textContent === currentFile);
+    async function initDB() {
+        db = await idb.openDB(dbName, 1, {
+            upgrade(db) { db.createObjectStore(fileStore, { keyPath: 'path' }); },
         });
     }
 
-    // एडिटर और प्रीव्यू
-    const runCode = () => {
-        const code = editor.value;
-        saveFile(currentFile, code); // ऑटो-सेव
-        const iframeDoc = previewWindow.contentWindow.document;
-        iframeDoc.open();
-        // कंसोल में त्रुटियों को पकड़ने के लिए
-        iframeDoc.write(`<script>
-            window.onerror = function(message, source, lineno, colno, error) {
-                window.parent.postMessage({
-                    type: 'error',
-                    message: message,
-                    lineno: lineno
-                }, '*');
-                return true;
-            };
-        <\/script>${code}`);
-        iframeDoc.close();
-        logToConsole('Code Executed.', 'log');
-    };
-
-    const updateLineNumbers = () => {
-        const lines = editor.value.split('\n').length;
-        lineNumbers.innerHTML = Array.from({ length: lines }, (_, i) => i + 1).join('<br>');
-    };
-    
-    const updateEditor = () => {
-        runCode();
-        updateLineNumbers();
-    }
-
-    editor.addEventListener('input', updateEditor);
-    editor.addEventListener('scroll', () => {
-        lineNumbers.scrollTop = editor.scrollTop;
-    });
-    runBtn.addEventListener('click', runCode);
-    // Ctrl+S से भी रन करें
-    editor.addEventListener('keydown', e => {
-        if (e.ctrlKey && e.key === 's') {
-            e.preventDefault();
-            runCode();
+    const fs = {
+        get: (path) => db.get(fileStore, path),
+        set: (path, data) => db.put(fileStore, { path, ...data }),
+        delete: (path) => db.delete(fileStore, path),
+        getAll: () => db.getAll(fileStore),
+        rename: async (oldPath, newPath) => {
+            const item = await fs.get(oldPath);
+            if (!item) return;
+            await fs.delete(oldPath);
+            item.path = newPath;
+            return db.put(fileStore, item);
         }
-    });
+    };
 
+    const consoleInterceptor = `<script>
+        const _c = {...window.console};
+        const post = (type, args) => parent.postMessage({type, data: args.map(a => a instanceof Node ? 'DOMNode' : a)}, '*');
+        window.console = { ..._c,
+            log: (...a) => { post('log', a); _c.log(...a); },
+            error: (...a) => { post('error', a); _c.error(...a); },
+            warn: (...a) => { post('warn', a); _c.warn(...a); },
+        };
+        window.addEventListener('error', e => console.error(e.message));
+    <\/script>`;
 
-    // UI टॉगल
-    menuBtn.addEventListener('click', () => fileExplorer.classList.toggle('closed'));
-    consoleBtn.addEventListener('click', () => consoleOutput.classList.toggle('open'));
-    closeConsoleBtn.addEventListener('click', () => consoleOutput.classList.remove('open'));
+    const run = debounce(async () => {
+        dom.consolePanel.innerHTML = '';
+        const files = await fs.getAll();
+        const htmlFile = files.find(f => f.path === '/index.html');
+        if (!htmlFile) return;
 
-    // कंसोल लॉगिंग
-    function logToConsole(message, type = 'log') {
-        const msgElement = document.createElement('div');
-        msgElement.className = type; // log, error, warn
-        msgElement.textContent = `> ${message}`;
-        consoleMessages.appendChild(msgElement);
-        consoleMessages.scrollTop = consoleMessages.scrollHeight;
-    }
-
-    // iframe से त्रुटि संदेश प्राप्त करना
-    window.addEventListener('message', e => {
-        if (e.data && e.data.type === 'error') {
-            logToConsole(`Error on line ${e.data.lineno}: ${e.data.message}`, 'error');
-            if(!consoleOutput.classList.contains('open')) {
-                consoleOutput.classList.add('open');
+        let src = htmlFile.content.replace('<head>', `<head>${consoleInterceptor}`);
+        
+        for (const file of files) {
+            if (file.path.endsWith('.css')) src = src.replace('</head>', `<style>${file.content}</style></head>`);
+            if (file.path.endsWith('.js')) src = src.replace('</body>', `<script>${file.content}<\/script></body>`);
+            if (file.content?.startsWith('data:')) {
+                src = src.replaceAll(file.path.substring(1), file.content);
             }
         }
-    });
+        dom.outputFrame.srcdoc = src;
+    }, 500);
 
-    // कस्टम कॉन्टेक्स्ट मेनू
-    const contextMenu = document.getElementById('custom-context-menu');
-    editor.addEventListener('contextmenu', e => {
-        e.preventDefault();
-        contextMenu.style.top = `${e.clientY}px`;
-        contextMenu.style.left = `${e.clientX}px`;
-        contextMenu.style.display = 'block';
-    });
+    const debouncedSave = debounce((path, content) => {
+        const file = fs.get(path).then(item => {
+            if (item) fs.set(path, { ...item, content });
+        });
+    }, 500);
 
-    document.addEventListener('click', () => contextMenu.style.display = 'none');
+    function createEditor(parent, mode, value, path) {
+        const editor = CodeMirror(parent, {
+            value, mode, theme: 'dracula', lineNumbers: true, autoCloseBrackets: true,
+        });
+        editor.on('change', () => debouncedSave(path, editor.getValue()));
+        return editor;
+    }
     
-    document.getElementById('ctx-cut').addEventListener('click', () => document.execCommand('cut'));
-    document.getElementById('ctx-copy').addEventListener('click', () => document.execCommand('copy'));
-    document.getElementById('ctx-paste').addEventListener('click', () => document.execCommand('paste'));
-    document.getElementById('ctx-select-all').addEventListener('click', () => editor.select());
+    function setActivePanel(panel) {
+        dom.editorTabs.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+        openFiles.forEach(editor => editor.getWrapperElement().parentElement.style.display = 'none');
+        dom.consolePanel.classList.remove('active');
 
-    // आरंभिक लोड
-    updateEditor();
+        if (panel === 'console') {
+            dom.consolePanel.classList.add('active');
+            dom.editorTabs.querySelector('.tab-btn[data-path="console"]').classList.add('active');
+            activeEditor = null;
+        } else {
+            activeEditor = panel;
+            const wrapper = activeEditor.getWrapperElement().parentElement;
+            wrapper.style.display = 'block';
+            activeEditor.refresh();
+            dom.editorTabs.querySelector(`[data-path="${activeEditor.path}"]`).classList.add('active');
+        }
+    }
+    
+    function addTab(path, isConsole = false) {
+        const id = isConsole ? 'console' : path;
+        if (dom.editorTabs.querySelector(`[data-path="${id}"]`)) return;
+
+        const tab = document.createElement('button');
+        tab.className = 'tab-btn';
+        tab.dataset.path = id;
+        tab.textContent = isConsole ? 'Console' : path.split('/').pop();
+        
+        if (!isConsole) {
+            const closeBtn = document.createElement('span');
+            closeBtn.innerHTML = ' &times;';
+            closeBtn.onclick = e => { e.stopPropagation(); closeFile(path); };
+            tab.appendChild(closeBtn);
+        }
+        tab.onclick = () => setActivePanel(isConsole ? 'console' : openFiles.get(path));
+        dom.editorTabs.appendChild(tab);
+    }
+    
+    async function openFile(path) {
+        if (openFiles.has(path)) {
+            setActivePanel(openFiles.get(path));
+            return;
+        }
+        const file = await fs.get(path);
+        if (!file || file.type !== 'file') return;
+
+        const editorWrapper = document.createElement('div');
+        editorWrapper.style.display = 'none';
+        dom.editorPanes.insertBefore(editorWrapper, dom.consolePanel);
+        
+        const mode = path.endsWith('.css') ? 'css' : path.endsWith('.js') ? 'javascript' : 'xml';
+        const editor = createEditor(editorWrapper, mode, file.content, path);
+        editor.path = path;
+        openFiles.set(path, editor);
+        
+        addTab(path);
+        setActivePanel(editor);
+    }
+
+    function closeFile(path) {
+        const editor = openFiles.get(path);
+        if (!editor) return;
+
+        editor.getWrapperElement().parentElement.remove();
+        openFiles.delete(path);
+        dom.editorTabs.querySelector(`[data-path="${path}"]`).remove();
+        
+        if (activeEditor && activeEditor.path === path) {
+            const nextFile = openFiles.keys().next().value;
+            setActivePanel(nextFile ? openFiles.get(nextFile) : 'console');
+        }
+    }
+    
+    function buildFileTree(files) {
+        const tree = {};
+        files.sort((a, b) => a.path.localeCompare(b.path)).forEach(file => {
+            let level = tree;
+            file.path.substring(1).split('/').forEach((part, i, arr) => {
+                if (!level[part]) {
+                    level[part] = i === arr.length - 1 ? file : { type: 'folder', children: {} };
+                }
+                level = level[part].children;
+            });
+        });
+        return tree;
+    }
+    
+    function renderFileTree(tree, container) {
+        container.innerHTML = '';
+        Object.entries(tree).forEach(([name, item]) => {
+            const li = document.createElement('div');
+            li.className = 'file-list-item';
+            const icon = item.type === 'folder' ? 'fa-folder' : 'fa-file-code';
+            li.innerHTML = `<i class="fas ${icon}"></i><span>${name}</span>`;
+            li.onclick = () => { if (item.type === 'file') openFile(item.path); };
+            li.oncontextmenu = e => { e.preventDefault(); showContextMenu(e, item.path); };
+            container.appendChild(li);
+
+            if (item.type === 'folder') {
+                const subContainer = document.createElement('div');
+                subContainer.style.paddingLeft = '15px';
+                li.appendChild(subContainer);
+                renderFileTree(item.children, subContainer);
+            }
+        });
+    }
+
+    async function refreshFileExplorer() {
+        const files = await fs.getAll();
+        renderFileTree(buildFileTree(files), dom.fileList);
+    }
+    
+    function showContextMenu(event, path) {
+        dom.contextMenu.style.top = `${event.clientY}px`;
+        dom.contextMenu.style.left = `${event.clientX}px`;
+        dom.contextMenu.style.display = 'block';
+        dom.contextMenu.dataset.path = path;
+    }
+
+    document.addEventListener('click', () => dom.contextMenu.style.display = 'none');
+    
+    document.addEventListener('click', async (e) => {
+        const target = e.target.closest('button');
+        if (!target) return;
+
+        const id = target.id;
+        if (id === 'btn-run') run();
+        if (id === 'btn-fullscreen') dom.outputFrame.requestFullscreen();
+        if (id === 'btn-console') setActivePanel('console');
+        if (id === 'btn-pc' || id === 'btn-mobile') {
+            document.querySelector('.preview-controls .active').classList.remove('active');
+            target.classList.add('active');
+            dom.iframeWrapper.className = id === 'btn-pc' ? 'pc-mode' : 'mobile-mode';
+        }
+        if (id === 'menu-btn') dom.sidebar.classList.toggle('show');
+        if (id === 'close-sidebar-btn') dom.sidebar.classList.remove('show');
+        if (id === 'new-file-btn' || id === 'new-folder-btn') {
+            const type = id === 'new-file-btn' ? 'file' : 'folder';
+            const name = prompt(`Enter new ${type} name:`);
+            if (name) {
+                await fs.set(`/${name}`, { type, content: '', children: {} });
+                await refreshFileExplorer();
+            }
+        }
+        if (id === 'import-file-btn') dom.fileImporter.click();
+    });
+
+    dom.contextMenu.addEventListener('click', async (e) => {
+        const action = e.target.closest('li').id;
+        const path = dom.contextMenu.dataset.path;
+        if (action === 'ctx-delete') {
+            if (confirm(`Delete ${path}?`)) {
+                await fs.delete(path);
+                if (openFiles.has(path)) closeFile(path);
+            }
+        }
+        if (action === 'ctx-rename') {
+            const newName = prompt('Enter new name:', path.split('/').pop());
+            if (newName) await fs.rename(path, path.substring(0, path.lastIndexOf('/') + 1) + newName);
+        }
+        await refreshFileExplorer();
+    });
+
+    dom.fileImporter.addEventListener('change', (e) => {
+        for (const file of e.target.files) {
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                await fs.set(`/${file.name}`, { type: 'file', content: event.target.result });
+                await refreshFileExplorer();
+            };
+            if (file.type.match(/image|video|audio|font/)) reader.readAsDataURL(file);
+            else reader.readAsText(file);
+        }
+    });
+
+    window.addEventListener('message', e => {
+        if (e.data.type) logToConsolePanel(e.data);
+    });
+
+    function logToConsolePanel(msg) {
+        const log = document.createElement('div');
+        log.className = `console-log ${msg.type}`;
+        const text = msg.data.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+        log.textContent = `[${msg.type}] ${text}`;
+        dom.consolePanel.appendChild(log);
+    }
+    
+    async function main() {
+        await initDB();
+        let files = await fs.getAll();
+        if (files.length === 0) {
+            const demo = {
+                '/index.html': { type: 'file', content: `<h1>Hello, World!</h1>\n<p>Edit this code to start.</p>\n<script src="script.js"></script>` },
+                '/script.js': { type: 'file', content: `console.log("Welcome to your editor!");` },
+            };
+            await Promise.all(Object.entries(demo).map(([path, data]) => fs.set(path, data)));
+        }
+        
+        addTab(null, true);
+        await refreshFileExplorer();
+        await openFile('/index.html');
+        run();
+        
+        document.body.classList.remove('is-loading');
+    }
+
+    main();
 });
