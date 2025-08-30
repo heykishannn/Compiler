@@ -1,87 +1,74 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>प्रोफ़ेशनल कोड एडिटर</title>
+    <title>Code Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/dracula.min.css">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
-    <div class="app-container">
-        <!-- टॉप बार -->
-        <header class="top-bar">
-            <div class="left-controls">
-                <button id="menu-btn" title="फ़ाइलें दिखाएँ/छिपाएँ">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"></path></svg>
-                </button>
-                <span class="file-title" id="current-file-title">Untitled.html</span>
-            </div>
-            <div class="right-controls">
-                <button id="console-btn" title="कंसोल">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM5 16l3.5-4.5L12 17l3.5-4.5L19 16H5z"></path></svg>
-                </button>
-                <button id="run-btn" title="कोड चलाएँ (Ctrl+S)">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
-                </button>
-                <button id="pc-mode-btn" title="डेस्कटॉप प्रीव्यू">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"></path></svg>
-                </button>
-                <button id="mobile-mode-btn" title="मोबाइल प्रीव्यू">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"></path></svg>
-                </button>
-                <button id="fullscreen-btn" title="फुल-स्क्रीन प्रीव्यू">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"></path></svg>
-                </button>
-            </div>
-        </header>
+<body class="is-loading">
 
-        <!-- मुख्य कंटेंट क्षेत्र -->
-        <main class="main-content">
-            <!-- फ़ाइल एक्सप्लोरर -->
-            <aside id="file-explorer" class="file-explorer">
-                <div class="file-explorer-header">
-                    <span>फ़ाइलें</span>
-                    <div class="file-actions">
-                        <button id="new-file-btn" title="नई फ़ाइल">+</button>
-                        <button id="import-file-btn" title="फ़ाइल इम्पोर्ट करें">↑</button>
-                    </div>
-                </div>
-                <ul id="file-list"></ul>
-            </aside>
-
-            <!-- एडिटर और प्रीव्यू -->
-            <div class="editor-area">
-                <div class="editor-container">
-                    <div class="line-numbers" id="line-numbers">1</div>
-                    <textarea id="editor" spellcheck="false" autocomplete="off"></textarea>
-                </div>
-                <div class="preview-container resizable">
-                    <div class="preview-header">
-                        <span>प्रीव्यू</span>
-                    </div>
-                    <iframe id="preview-window"></iframe>
-                </div>
-            </div>
-        </main>
-
-        <!-- कंसोल आउटपुट -->
-        <footer id="console-output" class="console-output">
-            <div class="console-header">
-                <span>कंसोल</span>
-                <button id="close-console-btn" title="कंसोल बंद करें">×</button>
-            </div>
-            <div id="console-messages"></div>
-        </footer>
+    <div id="file-manager" class="sidebar">
+        <div class="sidebar-header">
+            <h3>File Explorer</h3>
+            <button id="close-sidebar-btn" class="icon-btn">&times;</button>
+        </div>
+        <div class="sidebar-controls">
+            <button id="new-file-btn" title="New File"><i class="fas fa-file-plus"></i></button>
+            <button id="new-folder-btn" title="New Folder"><i class="fas fa-folder-plus"></i></button>
+            <button id="import-file-btn" title="Import File"><i class="fas fa-upload"></i></button>
+            <input type="file" id="file-importer" style="display: none;" multiple>
+        </div>
+        <div id="file-list" class="file-list">
+            <!-- Skeleton Loader for Files -->
+            <div class="placeholder-item"></div>
+            <div class="placeholder-item"></div>
+            <div class="placeholder-item" style="width: 80%;"></div>
+        </div>
     </div>
 
-    <!-- अपना कस्टम कॉन्टेक्स्ट मेनू -->
-    <div id="custom-context-menu">
-        <div class="context-item" id="ctx-cut">कट करें</div>
-        <div class="context-item" id="ctx-copy">कॉपी करें</div>
-        <div class="context-item" id="ctx-paste">पेस्ट करें</div>
-        <div class="context-item" id="ctx-select-all">सभी चुनें</div>
+    <div id="context-menu" class="context-menu">
+        <ul>
+            <li id="ctx-rename"><i class="fas fa-pencil-alt"></i> Rename</li>
+            <li id="ctx-delete"><i class="fas fa-trash"></i> Delete</li>
+        </ul>
     </div>
-    
+
+    <div class="main-container">
+        <div class="preview-container">
+            <div id="iframe-wrapper">
+                <iframe id="output" sandbox="allow-scripts allow-same-origin"></iframe>
+            </div>
+            <div class="preview-controls">
+                <button id="btn-fullscreen" title="Fullscreen Preview"><i class="fas fa-expand"></i></button>
+                <button id="btn-pc" title="Desktop Mode" class="active"><i class="fas fa-desktop"></i></button>
+                <button id="btn-mobile" title="Mobile Mode"><i class="fas fa-mobile-alt"></i></button>
+                <div class="separator"></div>
+                <button id="btn-console" title="Toggle Console"><i class="fas fa-terminal"></i></button>
+                <button id="btn-run" title="Run Code"><i class="fas fa-play"></i></button>
+            </div>
+        </div>
+
+        <div class="workspace-container">
+            <header class="main-header">
+                <button id="menu-btn" class="icon-btn" title="Toggle File Explorer"><i class="fas fa-bars"></i></button>
+                <div id="editor-tabs" class="editor-tabs"></div>
+            </header>
+            <div class="editor-panes">
+                <div class="placeholder-editor"></div>
+                <div id="console-panel" class="console-panel"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
