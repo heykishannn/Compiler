@@ -2,24 +2,22 @@
     --bg-primary: #1E1E1E; --bg-secondary: #252526; --bg-tertiary: #333333;
     --bg-explorer: rgba(255, 255, 255, 0.08); --border-explorer: #555555;
     --text-primary: #CCCCCC; --text-secondary: #8F8F8F;
-    --accent-blue: #007ACC; --accent-red: #D16969; --border-color: #3C3C3C;
+    --accent-blue: #007ACC; --accent-red: #D16969; --color-green: #28a745;
     --font-primary: 'Poppins', sans-serif; --font-code: 'Fira Code', monospace;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
-body { font-family: var(--font-primary); background: var(--bg-primary); color: var(--text-primary); height: 100vh; width: 100vw; display: flex; }
+body { font-family: var(--font-primary); background: var(--bg-primary); color: var(--text-primary); height: 100vh; width: 100vw; display: flex; overflow: hidden; }
 .main-wrapper { display: flex; height: 100%; width: 100%; }
 .hidden { display: none !important; }
 
-/* File Manager */
-.file-manager-container { display: flex; flex-direction: column; height: 100%; background: var(--bg-explorer); backdrop-filter: blur(10px); border-right: 1px solid var(--border-explorer); }
-.file-manager-header { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid var(--border-explorer); flex-shrink: 0; }
+/* File Manager (Consistent styling) */
+.file-manager-container, .desktop-file-explorer { background: var(--bg-explorer); backdrop-filter: blur(10px); }
+.file-manager-container { display: flex; flex-direction: column; height: 100%; border-right: 1px solid var(--border-explorer); }
 .file-list { list-style: none; overflow-y: auto; flex-grow: 1; padding: 8px; }
-.file-item { display: flex; align-items: center; padding: 10px 8px; border-radius: 4px; transition: background-color 0.2s; user-select: none; }
-.file-item:hover { background-color: rgba(255, 255, 255, 0.15); }
 .file-item.active { background-color: var(--accent-blue); color: white; }
 .desktop-file-explorer { width: 300px; flex-shrink: 0; transition: width 0.3s ease; height: 100%; }
-.main-wrapper.explorer-collapsed .desktop-file-explorer { width: 0; }
+.main-wrapper.explorer-collapsed .desktop-file-explorer { width: 0; border-right: none; }
 .mobile-file-manager { position: fixed; top: 0; left: 0; width: 300px; height: 100%; z-index: 2000; transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
 .mobile-file-manager.open { transform: translateX(0); box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
 .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; }
@@ -28,76 +26,55 @@ body { font-family: var(--font-primary); background: var(--bg-primary); color: v
 .editor-preview-container { flex-grow: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 .main-header { display: flex; align-items: center; padding: 0 16px; height: 56px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
 .logo h1 { font-size: 1.5em; color: var(--text-primary); margin-left: 16px; }
-
-/* --- नया कंसोल पैनल स्टाइल --- */
-.console-output {
-    font-family: var(--font-code);
-    font-size: 14px;
-    padding: 6px 12px;
-    margin-left: 24px;
-    border-radius: 6px;
-    background-color: var(--bg-tertiary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 250px;
-    transition: all 0.3s;
-}
-.console-output.success { color: #28a745; border: 1px solid #28a745; }
-.console-output.error { color: #dc3545; border: 1px solid #dc3545; }
-
 .controls { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .controls button, #toggle-explorer-btn { color: white; border: none; padding: 8px; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
 .controls button svg, #toggle-explorer-btn svg { width: 20px; height: 20px; fill: currentColor; display: block; }
 .separator { width: 1px; height: 24px; background-color: var(--border-color); margin: 0 8px; }
+
+/* Button Colors */
 #toggle-explorer-btn { background-color: #5a5a5a; }
-#run-btn { background-color: #28a745; }
+#console-status { background-color: var(--color-green); } /* Green by default */
+#console-status.error { background-color: var(--accent-red); } /* Red for error */
+#run-btn { background-color: #007bff; }
 #select-all-btn { background-color: #fd7e14; }
-#pc-view-btn { background-color: #007bff; }
+#pc-view-btn { background-color: #6f42c1; }
 #mobile-view-btn { background-color: #17a2b8; }
-#fs-preview-btn { background-color: #6f42c1; }
+#fs-preview-btn { background-color: #343a40; }
 .controls button:hover, #toggle-explorer-btn:hover { filter: brightness(1.2); }
 
-.content-area { display: flex; flex-grow: 1; overflow: hidden; position: relative; }
+.content-area { display: flex; flex-grow: 1; overflow: hidden; }
 .code-container { width: 50%; height: 100%; border-right: 1px solid var(--border-color); }
-#editor-wrapper { height: 100%; }
-.CodeMirror { height: 100% !important; font-family: var(--font-code); font-size: 15px; }
+#editor-wrapper, .CodeMirror { height: 100% !important; font-family: var(--font-code); font-size: 15px; }
 .cm-s-dracula.CodeMirror { background: #282a36; }
 .CodeMirror-cursor { border-left: 3px solid white !important; }
 
 /* Preview Area */
-.preview-container { width: 50%; height: 100%; display: flex; justify-content: center; align-items: center; padding: 16px; background: linear-gradient(45deg, #1D2B34, #1E1E1E); overflow: auto; }
-#preview-wrapper { display: flex; justify-content: center; align-items: center; transition: all 0.2s ease; transform-origin: center center; flex-shrink: 0; /* बहुत महत्वपूर्ण */ }
+.preview-container { display: flex; justify-content: center; align-items: center; width: 50%; height: 100%; padding: 16px; background: linear-gradient(45deg, #1D2B34, #1E1E1E); overflow: auto; }
+#preview-wrapper { display: flex; justify-content: center; align-items: center; transition: all 0.2s ease; transform-origin: center center; flex-shrink: 0; }
 #preview-frame { border: none; background-color: #fff; box-shadow: 0 0 20px rgba(0,0,0,0.4); }
 
-/* मोबाइल मोड */
+/* Mode-specific styling */
 #preview-wrapper.mobile-mode { width: 375px; height: 812px; }
 #preview-wrapper.mobile-mode #preview-frame { width: 100%; height: 100%; border: 12px solid #111; border-radius: 40px; }
+#preview-wrapper.desktop-scaled-mode { width: 1280px; height: 720px; }
+#preview-wrapper.desktop-scaled-mode #preview-frame { width: 100%; height: 100%; }
 
-/* पीसी स्केल्ड मोड */
-#preview-wrapper.desktop-scaled-mode { position: relative; width: 100%; height: 100%; }
-#preview-wrapper.desktop-scaled-mode #preview-frame { position: absolute; top: 0; left: 0; width: 1280px; height: 720px; transform-origin: top left; }
-
-/* --- स्मार्ट फ़ुल-स्क्रीन मोड स्टाइल --- */
+/* --- फ़ुल-स्क्रीन के लिए नई स्टाइल --- */
 .preview-container:fullscreen { padding: 0; }
-.preview-container:fullscreen #preview-wrapper { transform: scale(1) !important; }
-.preview-container:fullscreen #preview-wrapper.mobile-mode { width: 100%; height: 100%; padding: 2vh 0; /* फ़ोन को थोड़ा छोटा दिखाने के लिए */ }
-.preview-container:fullscreen #preview-wrapper.mobile-mode #preview-frame { max-width: 420px; max-height: 90vh; }
+.preview-container:fullscreen #preview-wrapper { transform: none !important; width: 100% !important; height: 100% !important; }
+.preview-container:fullscreen #preview-wrapper.mobile-mode { width: auto !important; max-width: 450px; } /* मोबाइल को fullscreen में थोड़ा बड़ा करें */
 
-/* --- नया वर्टिकल कॉन्टेक्स्ट मेनू --- */
-#editor-context-menu { min-width: 150px; }
-#editor-context-menu .dropdown-item { padding: 10px 20px; }
-.dropdown-item[data-action="cut"]:hover { background-color: var(--accent-red); }
-.dropdown-item[data-action="paste"]:hover { background-color: #28a745; }
+/* --- नया एडिटर मेनू डिज़ाइन --- */
+#editor-context-menu { display: flex; padding: 4px; border-radius: 8px; gap: 4px; }
+#editor-context-menu .dropdown-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+#editor-context-menu .dropdown-item svg { width: 18px; height: 18px; fill: currentColor; }
 
 /* Mobile Responsiveness */
 @media (max-width: 800px) {
     body { overflow-y: auto; }
     .main-wrapper { flex-direction: column; height: auto; min-height: 100vh; }
     .desktop-file-explorer { display: none; }
-    .main-header { padding: 0 12px; }
-    .logo, .console-output { display: none; }
     .content-area { flex-direction: column; height: auto; }
-    .code-container { width: 100%; height: 60vh; border-right: none; border-bottom: 1px solid var(--border-color); }
-    .preview-container { width: 100%; height: 80vh; padding: 24px 16px; }
+    .code-container { width: 100%; height: 60vh; border: none; border-bottom: 1px solid var(--border-color); }
+    .preview-container { width: 100%; height: 80vh; }
 }
