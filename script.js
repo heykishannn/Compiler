@@ -2,15 +2,15 @@
 
 // --- Configuration ---
 // IMPORTANT: Replace these with your actual Supabase and Razorpay credentials
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'supabaseUrl = 'https://wrgwllfdoaqudkqwwqfz.supabase.co'';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZ3dsbGZkb2FxdWRrcXd3cWZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MTY1NjAsImV4cCI6MjA4NjQ5MjU2MH0.7U-FgKq0pmqMJvp4S5xB_HZlhATKCdv1tNy_HThxiO4';
 const RAZORPAY_KEY_ID = 'YOUR_RAZORPAY_KEY_ID';
-const ADMIN_EMAIL = 'admin@solveitpro.com';
+const ADMIN_EMAIL = 'kishankumar9396@gmail.com';
 
 // Initialize Supabase with Error Handling
 let supabase = null;
 try {
-    if (window.supabase && SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+    if (window.supabase && SUPABASE_URL !== 'https://wrgwllfdoaqudkqwwqfz.supabase.co') {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log("Supabase initialized successfully.");
     } else {
