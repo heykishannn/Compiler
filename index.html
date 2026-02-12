@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolveIt Pro - Your All-in-One Tool Suite</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Razorpay Checkout -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body class="dark-theme">
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="logo">SolveIt <span class="pro-badge">Pro</span></div>
+            <div class="nav-actions">
+                <button id="auth-btn" class="btn-secondary">Login</button>
+                <button id="profile-btn" class="btn-icon hidden">👤</button>
+            </div>
+        </nav>
+
+        <!-- Ad Placeholder Top -->
+        <div class="ad-placeholder top-ad">
+            <span>Ad Space</span>
+        </div>
+
+        <main id="main-content">
+            <!-- Auth View -->
+            <section id="auth-view" class="view hidden">
+                <div class="auth-container">
+                    <h2 id="auth-title">Login</h2>
+                    <form id="auth-form">
+                        <input type="email" id="auth-email" placeholder="Email" required>
+                        <input type="password" id="auth-password" placeholder="Password" required>
+                        <button type="submit" id="auth-submit" class="btn-primary">Login</button>
+                    </form>
+                    <p id="auth-toggle">Don't have an account? <span>Sign Up</span></p>
+                </div>
+            </section>
+
+            <!-- Home View -->
+            <section id="home-view" class="view">
+                <div class="search-bar">
+                    <input type="text" id="tool-search" placeholder="Search tools...">
+                </div>
+                <div class="tool-grid" id="tool-grid">
+                    <!-- Tools will be injected here -->
+                </div>
+            </section>
+
+            <!-- Tool View -->
+            <section id="tool-view" class="view hidden">
+                <button class="back-btn">← Back</button>
+                <div id="tool-container">
+                    <!-- Active tool content -->
+                </div>
+                <div class="ad-placeholder mid-ad">
+                    <span>Ad Space</span>
+                </div>
+                <div id="tool-results" class="results-container">
+                    <!-- Generated results -->
+                </div>
+            </section>
+
+            <!-- Profile/Premium View -->
+            <section id="profile-view" class="view hidden">
+                <button class="back-btn">← Back</button>
+                <div class="profile-card">
+                    <h2>My Profile</h2>
+                    <p id="user-email-display"></p>
+                    <div class="status-badge" id="premium-status">Free User</div>
+                    <p id="usage-count">Daily Usage: 0/3</p>
+                    <button id="upgrade-btn" class="btn-premium">Upgrade to Pro</button>
+                    <button id="admin-btn" class="btn-secondary hidden">Admin Dashboard</button>
+                    <button id="logout-btn" class="btn-danger">Logout</button>
+                </div>
+                <div class="saved-results-section">
+                    <h3>Saved Results</h3>
+                    <div id="saved-list"></div>
+                </div>
+            </section>
+
+            <!-- Admin View -->
+            <section id="admin-view" class="view hidden">
+                <button class="back-btn">← Back</button>
+                <h2>Admin Dashboard</h2>
+                <div class="admin-table-container">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Premium</th>
+                                <th>Usage</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-list"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <p>&copy; 2024 SolveIt Pro. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Templates for Tool Content -->
+    <template id="tool-template">
+        <div class="tool-header">
+            <h2 class="tool-title"></h2>
+            <p class="tool-desc"></p>
+        </div>
+        <form class="tool-form">
+            <div id="form-fields"></div>
+            <button type="submit" class="btn-primary generate-btn">Generate</button>
+        </form>
+    </template>
+
+    <script src="script.js"></script>
+</body>
+</html>
