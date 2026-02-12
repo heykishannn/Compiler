@@ -2,9 +2,9 @@
 
 // --- Configuration ---
 const SUPABASE_URL = 'https://wrgwllfdoaqudkqwwqfz.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZ3dsbGZkb2FxdWRrcXd3cWZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MTY1NjAsImV4cCI6MjA4NjQ5MjU2MH0.7U-FgKq0pmqMJvp4S5xB_HZlhATKCdv1tNy_HThxiO4';
 const RAZORPAY_KEY_ID = 'YOUR_RAZORPAY_KEY_ID';
-const ADMIN_EMAIL = 'admin@solveitpro.com';
+const ADMIN_EMAIL = 'kishankumar9396@gmail.com';
 
 // Initialize Supabase
 const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
