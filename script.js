@@ -1,151 +1,391 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    let currentPath = '/', activeFilePath = null, editor, db;
-    let objectURLs = {};
+// ==================== SUPABASE INIT ====================
+// 👇 REPLACE WITH YOUR SUPABASE URL & ANON KEY
+const SUPABASE_URL = 'https://yourproject.supabase.co';
+const SUPABASE_ANON_KEY = 'your-anon-key';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const DB_NAME = 'CodeVerseDB-v3'; const STORE_NAME = 'files';
-    async function initDb() { db = await idb.openDB(DB_NAME, 1, { upgrade(db) { db.createObjectStore(STORE_NAME, { keyPath: 'path' }); } }); }
+// ==================== APP STATE ====================
+let currentUser = null;
+let userProfile = null;
+let currentTool = null;
+let adminEmail = 'admin@solveitpro.com'; // change this
 
-    const mainWrapper = document.querySelector('.main-wrapper');
-    const mobileFileManager = document.getElementById('mobile-file-manager');
-    const desktopFileManager = document.querySelector('.desktop-file-explorer');
-    const overlay = document.getElementById('overlay');
-    const previewContainer = document.getElementById('preview-container');
-    const previewWrapper = document.getElementById('preview-wrapper');
-    const previewFrame = document.getElementById('preview-frame');
-    const dropdownMenu = document.getElementById('dropdown-menu');
-    const editorContextMenu = document.getElementById('editor-context-menu');
-    const consoleContainer = document.getElementById('console-container');
-    const consoleOutput = document.getElementById('console-output');
-    const consoleBtn = document.getElementById('console-btn');
-    const errorIndicator = document.querySelector('.error-indicator');
-    
-    // ... icons and fileManagerHTML unchanged ...
+// ==================== DOM CACHE ====================
+const app = document.getElementById('app');
 
-    // --- File System & UI Logic (Minor Changes) ---
-    // ... renderFileList, createNode, deleteNode are unchanged ...
-    const setActiveFile = async (path) => { activeFilePath = path; if (path) { const node = await db.get(STORE_NAME, path); editor.setValue(node && !(node.content instanceof Blob) ? node.content || '' : 'Cannot edit binary files.'); editor.setOption('mode', node ? node.mode : 'text/plain'); } else { editor.setValue(''); } await renderFileList(); editor.refresh(); };
-    const loadProject = async () => { const allFiles = await db.getAll(STORE_NAME); if (allFiles.length === 0) { const defaultFiles = [{ path: '/', type: 'folder' }, { path: '/index.html', type: 'file', mode: 'xml', content: `<h1>Hello!</h1>\n<button onclick="test()">Click Me</button>` }, { path: '/style.css', type: 'file', mode: 'css', content: `body { font-family: sans-serif; }` }, { path: '/script.js', type: 'file', mode: 'javascript', content: `function test() {\n  console.log("Button was clicked!");\n  // Try creating an error:\n  // let x = y;\n}` }]; for(const file of defaultFiles) await db.put(STORE_NAME, file); } await renderFileList(); };
+// ==================== ROUTER (SPA) ====================
+const views = {
+  auth: renderAuth,
+  home: renderHome,
+  tool: renderTool,
+  admin: renderAdmin
+};
 
-    // --- अपडेट किया गया Code Execution with Console ---
-    const runCode = async () => {
-        errorIndicator.classList.add('hidden'); // हर रन पर इंडिकेटर रीसेट करें
-        Object.values(objectURLs).forEach(URL.revokeObjectURL); objectURLs = {};
-        const indexNode = await db.get(STORE_NAME, '/index.html');
-        if (!indexNode) { previewFrame.srcdoc = `...`; return; }
-        let htmlContent = indexNode.content; const allFiles = await db.getAll(STORE_NAME);
-        for (const file of allFiles) { if (file.content instanceof Blob) { objectURLs[file.path] = URL.createObjectURL(file.content); } }
-        htmlContent = htmlContent.replace(/(src|href)=["'](?!https?:\/\/|\/\/)(.*?)["']/g, (match, attr, value) => { let path = value.startsWith('/') ? value : new URL(value, 'http://a.com' + currentPath).pathname; return objectURLs[path] ? `${attr}="${objectURLs[path]}"` : match; });
-        const cssNode = await db.get(STORE_NAME, '/style.css'); const jsNode = await db.get(STORE_NAME, '/script.js');
-        const styleTag = cssNode ? `<style>${cssNode.content}</style>` : '';
-        
-        const injectedScript = `
-            <script>
-                const sendLog = (type, message) => window.parent.postMessage({ type: 'console', level: type, message: message }, '*');
-                
-                // console.log, console.error, etc. को ओवरराइड करें
-                const originalConsole = { ...window.console };
-                window.console.log = (...args) => { sendLog('log', args.join(' ')); originalConsole.log(...args); };
-                window.console.error = (...args) => { sendLog('error', args.join(' ')); originalConsole.error(...args); };
-                window.console.warn = (...args) => { sendLog('warn', args.join(' ')); originalConsole.warn(...args); };
-                
-                // रनटाइम त्रुटियों को पकड़ें
-                window.onerror = (message, source, lineno, colno, error) => {
-                    sendLog('error', \`\${message} (line: \${lineno})\`);
-                };
-                
-                // यूजर का कोड चलाएं
-                try {
-                    ${jsNode ? jsNode.content : ''}
-                } catch (e) {
-                    sendLog('error', e.message);
-                }
-            <\/script>
-        `;
-        previewFrame.srcdoc = `<html><head>${styleTag}</head><body>${htmlContent}${injectedScript}</body></html>`;
-    };
+function navigate(view, data = {}) {
+  views[view]?.(data);
+}
 
-    // --- Event Listeners ---
-    // ... setupEventListeners for file manager unchanged ...
-    
-    // --- Console Logic ---
-    window.addEventListener('message', event => {
-        if (event.data.type === 'console') {
-            const { level, message } = event.data;
-            const logEntry = document.createElement('div');
-            logEntry.className = `console-${level}`;
-            logEntry.textContent = `> ${message}`;
-            consoleOutput.appendChild(logEntry);
-            consoleOutput.scrollTop = consoleOutput.scrollHeight;
-            if (level === 'error') {
-                errorIndicator.classList.remove('hidden');
-            }
-        }
-    });
-    consoleBtn.addEventListener('click', () => consoleContainer.classList.toggle('hidden'));
-    document.getElementById('clear-console-btn').addEventListener('click', () => consoleOutput.innerHTML = '');
+// ==================== AUTH ====================
+async function renderAuth() {
+  app.innerHTML = `
+    <div class="auth-container">
+      <div class="auth-card">
+        <h2>Login</h2>
+        <div class="input-group">
+          <input type="email" id="login-email" placeholder="Email">
+        </div>
+        <div class="input-group">
+          <input type="password" id="login-password" placeholder="Password">
+        </div>
+        <button class="btn btn-primary" id="login-btn">Sign In</button>
+        <p style="margin-top:20px; text-align:center;">
+          No account? <a href="#" id="show-signup">Sign up</a>
+        </p>
+      </div>
+      <div class="auth-card hidden" id="signup-card">
+        <h2>Sign Up</h2>
+        <div class="input-group">
+          <input type="email" id="signup-email" placeholder="Email">
+        </div>
+        <div class="input-group">
+          <input type="password" id="signup-password" placeholder="Password">
+        </div>
+        <button class="btn btn-primary" id="signup-btn">Create Account</button>
+        <p style="margin-top:20px; text-align:center;">
+          Back to <a href="#" id="show-login">Login</a>
+        </p>
+      </div>
+    </div>
+  `;
 
-    // --- UI Interaction Logic ---
-    const updatePreviewLayout = () => {
-        const isFullscreen = !!document.fullscreenElement;
-        const container = isFullscreen ? document.body : previewContainer;
-        const containerWidth = container.clientWidth - (isFullscreen ? 0 : 32);
-        const containerHeight = container.clientHeight - (isFullscreen ? 0 : 32);
+  document.getElementById('show-signup').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.auth-card')[1].classList.remove('hidden');
+    document.querySelectorAll('.auth-card')[0].classList.add('hidden');
+  });
+  document.getElementById('show-login').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.auth-card')[0].classList.remove('hidden');
+    document.querySelectorAll('.auth-card')[1].classList.add('hidden');
+  });
 
-        if (previewWrapper.classList.contains('desktop-scaled-mode') && !isFullscreen) {
-            const scaleX = containerWidth / 1280; const scaleY = containerHeight / 720;
-            const scale = Math.min(scaleX, scaleY);
-            previewFrame.style.transform = `scale(${scale})`;
-            previewWrapper.style.width = `${1280 * scale}px`; previewWrapper.style.height = `${720 * scale}px`;
-        } else if (previewWrapper.classList.contains('mobile-mode')) {
-            const mobileWidth = 375; const mobileHeight = 812;
-            const scaleX = containerWidth / mobileWidth; const scaleY = containerHeight / mobileHeight;
-            const scale = Math.min(scaleX, scaleY);
-            if (!isFullscreen) { // केवल होम स्क्रीन पर रैपर को स्केल करें
-                previewWrapper.style.transform = `scale(${scale})`;
-            }
-            previewWrapper.style.width = `${mobileWidth}px`; previewWrapper.style.height = `${mobileHeight}px`;
-        } else {
-            previewFrame.style.transform = '';
-            previewWrapper.style.transform = '';
-            previewWrapper.style.width = '100%';
-            previewWrapper.style.height = '100%';
-        }
-    };
-    document.getElementById('toggle-explorer-btn').addEventListener('click', () => { if (window.innerWidth > 800) { mainWrapper.classList.toggle('explorer-collapsed'); } else { const isOpen = mobileFileManager.classList.contains('open'); mobileFileManager.classList.toggle('open', !isOpen); overlay.classList.toggle('hidden', isOpen); } setTimeout(() => { editor.refresh(); updatePreviewLayout(); }, 310); });
-    document.getElementById('pc-view-btn').addEventListener('click', () => { previewWrapper.classList.remove('mobile-mode'); previewWrapper.classList.add('desktop-scaled-mode'); updatePreviewLayout(); });
-    document.getElementById('mobile-view-btn').addEventListener('click', () => { previewWrapper.classList.remove('desktop-scaled-mode'); previewWrapper.classList.add('mobile-mode'); updatePreviewLayout(); });
-    window.addEventListener('resize', updatePreviewLayout);
-    document.addEventListener('fullscreenchange', updatePreviewLayout);
-    document.getElementById('fs-preview-btn').addEventListener('click', () => {
-        if (!document.fullscreenElement) { previewContainer.requestFullscreen(); } else { document.exitFullscreen(); }
-    });
-    
-    // --- INITIALIZATION ---
-    editor = CodeMirror.fromTextArea(document.getElementById('main-editor'), { lineNumbers: true, theme: 'dracula', autoCloseTags: true, lineWrapping: false });
-    
-    // --- एडिटर मेनू (कट/कॉपी/पेस्ट) ---
-    editor.on('contextmenu', (cm, event) => { event.preventDefault(); if (editor.getSelection()) { editorContextMenu.style.top = `${event.clientY}px`; editorContextMenu.style.left = `${event.clientX}px`; editorContextMenu.classList.remove('hidden'); } });
-    editorContextMenu.addEventListener('click', e => {
-        const action = e.target.dataset.action; if (!action) return;
-        if (action === 'cut') {
-            const selection = editor.getSelection();
-            if(selection) navigator.clipboard.writeText(selection).then(() => editor.replaceSelection(""));
-        } else if (action === 'copy') {
-             const selection = editor.getSelection();
-             if(selection) navigator.clipboard.writeText(selection);
-        } else if (action === 'paste') {
-            navigator.clipboard.readText().then(text => editor.replaceSelection(text));
-        }
-        editorContextMenu.classList.add('hidden'); editor.focus();
-    });
-    document.getElementById('select-all-btn').addEventListener('click', () => { editor.execCommand('selectAll'); editor.focus(); });
-    
-    let debounceTimer;
-    editor.on('change', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(async () => { if (activeFilePath) { const node = await db.get(STORE_NAME, activeFilePath); if(node && !(node.content instanceof Blob)) { node.content = editor.getValue(); await db.put(STORE_NAME, node); runCode(); } } }, 500); });
+  document.getElementById('login-btn').addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) alert(error.message);
+  });
 
-    await initDb();
-    await loadProject();
-    await setActiveFile('/index.html');
-    document.getElementById('pc-view-btn').click();
-    setTimeout(updatePreviewLayout, 100);
+  document.getElementById('signup-btn').addEventListener('click', async () => {
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) alert(error.message);
+    else alert('Check your email for confirmation!');
+  });
+}
+
+// ==================== AUTH STATE LISTENER ====================
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    currentUser = session.user;
+    loadUserProfile();
+  } else {
+    currentUser = null;
+    userProfile = null;
+    navigate('auth');
+  }
 });
+
+async function loadUserProfile() {
+  // Get or create profile in 'users' table
+  let { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', currentUser.id)
+    .single();
+
+  if (error || !data) {
+    // First time user – insert
+    const today = new Date().toISOString().split('T')[0];
+    const newProfile = {
+      id: currentUser.id,
+      email: currentUser.email,
+      is_premium: false,
+      daily_usage_count: 0,
+      last_usage_date: today
+    };
+    const { data: inserted, error: insertError } = await supabase
+      .from('users')
+      .insert([newProfile])
+      .select()
+      .single();
+    if (insertError) console.error(insertError);
+    else userProfile = inserted;
+  } else {
+    userProfile = data;
+    // Reset daily count if date changed
+    const today = new Date().toISOString().split('T')[0];
+    if (userProfile.last_usage_date !== today) {
+      userProfile.daily_usage_count = 0;
+      userProfile.last_usage_date = today;
+      await supabase
+        .from('users')
+        .update({ daily_usage_count: 0, last_usage_date: today })
+        .eq('id', currentUser.id);
+    }
+  }
+
+  // Navigate based on admin status
+  if (currentUser.email === adminEmail) navigate('admin');
+  else navigate('home');
+}
+
+// ==================== HOME SCREEN ====================
+function renderHome() {
+  const tools = [
+    { id: 'bio', name: 'Instagram Bio', icon: 'fa-user', trending: true },
+    { id: 'hook', name: 'Viral Reel Hook', icon: 'fa-video', trending: true },
+    { id: 'love', name: 'Love Message', icon: 'fa-heart', trending: false },
+    { id: 'resume', name: 'Resume Headline', icon: 'fa-file-alt', trending: false },
+    { id: 'study', name: 'Study Timetable', icon: 'fa-calendar', trending: true },
+    { id: 'gym', name: 'Gym Diet Plan', icon: 'fa-dumbbell', trending: false },
+    { id: 'krishna', name: 'Krishna Caption', icon: 'fa-om', trending: false }
+  ];
+
+  let toolCards = tools.map(t => `
+    <div class="tool-card" data-tool="${t.id}">
+      <i class="fas ${t.icon}"></i>
+      <span>${t.name}</span>
+      ${t.trending ? '<span class="trending-badge">🔥 Trending</span>' : ''}
+    </div>
+  `).join('');
+
+  app.innerHTML = `
+    <div class="top-bar">
+      <span class="app-title">SolveIt Pro</span>
+      <button class="btn" id="logout-btn"><i class="fas fa-sign-out-alt"></i></button>
+    </div>
+    <div class="ad-banner">📢 Ad Space – Banner</div>
+    <div class="usage-badge">
+      ${userProfile?.is_premium ? '⭐ Premium' : `🔓 Free: ${userProfile?.daily_usage_count || 0}/3 today`}
+      ${!userProfile?.is_premium ? '<button class="btn-premium" id="upgrade-btn" style="margin-left:12px;">Upgrade</button>' : ''}
+    </div>
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="tool-search" placeholder="Search tools...">
+    </div>
+    <div class="tool-grid" id="tool-grid">
+      ${toolCards}
+    </div>
+    <div class="ad-mid">📢 Ad Space – Mid Content</div>
+  `;
+
+  // Logout
+  document.getElementById('logout-btn')?.addEventListener('click', () => supabase.auth.signOut());
+  // Upgrade button
+  if (!userProfile?.is_premium) {
+    document.getElementById('upgrade-btn')?.addEventListener('click', initiatePayment);
+  }
+  // Tool selection
+  document.querySelectorAll('.tool-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const toolId = card.dataset.tool;
+      currentTool = toolId;
+      navigate('tool', { tool: toolId });
+    });
+  });
+  // Search
+  document.getElementById('tool-search').addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    document.querySelectorAll('.tool-card').forEach(card => {
+      const name = card.querySelector('span').innerText.toLowerCase();
+      card.style.display = name.includes(term) ? 'block' : 'none';
+    });
+  });
+}
+
+// ==================== TOOL GENERATOR ====================
+const toolGenerators = {
+  bio: (input) => [`✨ ${input} | Dreamer & Creator`, `📸 ${input} – Capturing moments`, `🚀 ${input} on a mission`, `💡 ${input} | Ideas worth spreading`, `🌍 ${input} · Global citizen`],
+  hook: (topic) => [`Stop scrolling if you care about ${topic}`, `I tried ${topic} for 30 days – here's what happened`, `${topic} changed my life forever`, `3 ${topic} secrets they don't tell you`, `Why ${topic} is the next big thing`],
+  love: (name) => [`${name}, you're my favourite notification`, `Every love story is beautiful, but ours is my favourite, ${name}`, `${name}, you're the reason I believe in forever`, `If I had a flower for every time I thought of you, I could walk through my garden forever, ${name}`, `${name}, you're my today and all of my tomorrows`],
+  resume: (role) => [`Innovative ${role} with 5+ years of impact`, `Results-driven ${role} | Data & strategy`, `Creative ${role} – turning ideas into products`, `${role} passionate about user experience`, `Award-winning ${role} seeking new challenges`],
+  study: (subject) => [`7:00 AM - ${subject} revision`, `9:00 AM - Practice problems (${subject})`, `11:00 AM - Break`, `1:00 PM - ${subject} group study`, `4:00 PM - ${subject} flashcards`],
+  gym: (goal) => [`Monday: Chest + 30min cardio (${goal})`, `Tuesday: Back & biceps (${goal})`, `Wednesday: Active recovery`, `Thursday: Leg day (${goal})`, `Friday: Shoulders & abs (${goal})`],
+  krishna: (input) => [`🕉️ When Krishna is your captain, the ocean of life is easy to cross.`, `🌸 Like Krishna's flute, let your life be hollow so the divine can play through you.`, `💛 Radhe Radhe – ${input}`, `🦚 Let go, trust Krishna.`, `✨ Your struggle today is Krishna's leela for a better tomorrow.`]
+};
+
+async function renderTool({ tool }) {
+  if (!userProfile) return;
+  const canGenerate = userProfile.is_premium || userProfile.daily_usage_count < 3;
+  if (!canGenerate) {
+    alert('Daily limit reached. Upgrade to premium!');
+    return navigate('home');
+  }
+
+  const toolName = tool.charAt(0).toUpperCase() + tool.slice(1).replace('krishna', 'Krishna Caption');
+  app.innerHTML = `
+    <div class="top-bar">
+      <button class="btn" id="back-btn"><i class="fas fa-arrow-left"></i> Back</button>
+      <span class="app-title">${toolName}</span>
+    </div>
+    <div class="ad-banner">📢 Ad Space – Banner</div>
+    <div class="tool-container">
+      <label for="tool-input">Enter topic / name / goal:</label>
+      <input type="text" id="tool-input" class="tool-input" placeholder="e.g. fitness, John, weight loss">
+      <button class="btn btn-primary" id="generate-btn">Generate</button>
+      <div id="outputs-area"></div>
+    </div>
+    <div class="ad-mid">📢 Ad Space – Mid Content</div>
+  `;
+
+  document.getElementById('back-btn').addEventListener('click', () => navigate('home'));
+
+  document.getElementById('generate-btn').addEventListener('click', async () => {
+    const input = document.getElementById('tool-input').value.trim();
+    if (!input) return alert('Please enter something');
+    
+    // Check limit again (race condition safe)
+    if (!userProfile.is_premium && userProfile.daily_usage_count >= 3) {
+      return alert('Daily limit reached. Upgrade!');
+    }
+
+    const generator = toolGenerators[tool];
+    const outputs = generator(input).slice(0,5); // ensure 5
+
+    // Render outputs
+    const outputsDiv = document.getElementById('outputs-area');
+    outputsDiv.innerHTML = outputs.map((text, i) => `
+      <div class="output-card">
+        <span>${text}</span>
+        <button class="copy-btn" data-text="${text}">Copy</button>
+      </div>
+    `).join('');
+
+    // Copy buttons
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        navigator.clipboard.writeText(e.target.dataset.text);
+        e.target.innerText = 'Copied!';
+        setTimeout(() => e.target.innerText = 'Copy', 1500);
+      });
+    });
+
+    // Increment usage count for non-premium
+    if (!userProfile.is_premium) {
+      const newCount = userProfile.daily_usage_count + 1;
+      userProfile.daily_usage_count = newCount;
+      await supabase
+        .from('users')
+        .update({ daily_usage_count: newCount })
+        .eq('id', currentUser.id);
+    }
+
+    // Save to saved_results table
+    await supabase
+      .from('saved_results')
+      .insert([{
+        user_id: currentUser.id,
+        category: tool,
+        result_text: outputs.join(' | ')
+      }]);
+  });
+}
+
+// ==================== RAZORPAY PREMIUM ====================
+async function initiatePayment() {
+  // In production, call your serverless function to create an order
+  // For this demo, we simulate a successful payment and upgrade the user.
+  // REPLACE with actual Razorpay order creation via Supabase Edge Function.
+  
+  const options = {
+    key: 'rzp_test_YOUR_KEY', // 🔁 Replace with your Razorpay test key
+    amount: 29900, // ₹299
+    currency: 'INR',
+    name: 'SolveIt Pro',
+    description: 'Lifetime Premium',
+    image: 'https://your-logo-url',
+    handler: async function (response) {
+      // Payment successful
+      const { error } = await supabase
+        .from('users')
+        .update({ is_premium: true })
+        .eq('id', currentUser.id);
+      if (!error) {
+        userProfile.is_premium = true;
+        alert('🎉 You are now premium!');
+        navigate('home');
+      }
+    },
+    prefill: {
+      email: currentUser.email
+    },
+    theme: {
+      color: '#6366f1'
+    }
+  };
+  const rzp = new Razorpay(options);
+  rzp.open();
+}
+
+// ==================== ADMIN DASHBOARD ====================
+async function renderAdmin() {
+  if (currentUser?.email !== adminEmail) return navigate('home');
+
+  // Fetch all users
+  const { data: users } = await supabase.from('users').select('*');
+  // Fetch all saved_results? (optional)
+  
+  let rows = users?.map(u => `
+    <tr>
+      <td>${u.email}</td>
+      <td>${u.is_premium ? '✅' : '❌'}</td>
+      <td>${u.daily_usage_count}</td>
+      <td>${u.last_usage_date}</td>
+      <td>
+        <button class="btn" data-id="${u.id}" data-action="toggle">Toggle Premium</button>
+        <button class="btn" data-id="${u.id}" data-action="reset">Reset Usage</button>
+      </td>
+    </tr>
+  `).join('');
+
+  app.innerHTML = `
+    <div class="top-bar">
+      <span class="app-title">Admin</span>
+      <button class="btn" id="logout-btn"><i class="fas fa-sign-out-alt"></i></button>
+    </div>
+    <table class="admin-table">
+      <thead>
+        <tr><th>Email</th><th>Premium</th><th>Today</th><th>Last Date</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        ${rows || '<tr><td colspan="5">No users</td></tr>'}
+      </tbody>
+    </table>
+    <button class="btn" id="back-to-home">Back to Home</button>
+  `;
+
+  document.getElementById('logout-btn').addEventListener('click', () => supabase.auth.signOut());
+  document.getElementById('back-to-home').addEventListener('click', () => navigate('home'));
+
+  // Action handlers
+  document.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const userId = e.target.dataset.id;
+      const action = e.target.dataset.action;
+      if (action === 'toggle') {
+        const user = users.find(u => u.id === userId);
+        await supabase.from('users').update({ is_premium: !user.is_premium }).eq('id', userId);
+        renderAdmin(); // refresh
+      } else if (action === 'reset') {
+        await supabase.from('users').update({ daily_usage_count: 0, last_usage_date: new Date().toISOString().split('T')[0] }).eq('id', userId);
+        renderAdmin();
+      }
+    });
+  });
+}
+
+// ==================== INIT ====================
+// Start with auth view
+navigate('auth');
