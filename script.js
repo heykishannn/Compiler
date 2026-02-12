@@ -1,7 +1,7 @@
 // SolveIt Pro - Core Application Logic
 
 // --- Configuration ---
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_URL = 'https://wrgwllfdoaqudkqwwqfz.supabase.co';
 const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 const RAZORPAY_KEY_ID = 'YOUR_RAZORPAY_KEY_ID';
 const ADMIN_EMAIL = 'admin@solveitpro.com';
