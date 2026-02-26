@@ -3,130 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SolveIt Pro - Your All-in-One Tool Suite</title>
+    <title>Instagram Survivor Game</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Supabase JS Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Razorpay Checkout -->
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
-<body class="dark-theme">
-    <div id="app">
-        <!-- Navigation -->
-        <nav class="navbar">
-            <div class="logo">SolveIt <span class="pro-badge">Pro</span></div>
-            <div class="nav-actions">
-                <button id="auth-btn" class="btn-secondary">Login</button>
-                <button id="profile-btn" class="btn-icon hidden">👤</button>
+<body>
+
+    <!-- Winner Modal -->
+    <div id="winnerModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="winner-title">WINNER</h2>
+            <div class="winner-img-container">
+                <img id="winnerImage" src="" alt="Winner">
             </div>
-        </nav>
-
-        <!-- Ad Placeholder Top -->
-        <div class="ad-placeholder top-ad">
-            <span>Ad Space</span>
+            <h1 id="winnerText" class="winner-name">Username</h1>
+            <button id="closeModalBtn" class="btn secondary-btn">Close</button>
         </div>
-
-        <main id="main-content">
-            <!-- Auth View -->
-            <section id="auth-view" class="view hidden">
-                <div class="auth-container">
-                    <h2 id="auth-title">Login</h2>
-                    <form id="auth-form">
-                        <input type="email" id="auth-email" placeholder="Email" required>
-                        <input type="password" id="auth-password" placeholder="Password" required>
-                        <button type="submit" id="auth-submit" class="btn-primary">Login</button>
-                    </form>
-                    <p id="auth-toggle">Don't have an account? <span>Sign Up</span></p>
-                </div>
-            </section>
-
-            <!-- Home View -->
-            <section id="home-view" class="view">
-                <div class="search-bar">
-                    <input type="text" id="tool-search" placeholder="Search tools...">
-                </div>
-                <div class="tool-grid" id="tool-grid">
-                    <!-- Tools will be injected here -->
-                </div>
-            </section>
-
-            <!-- Tool View -->
-            <section id="tool-view" class="view hidden">
-                <button class="back-btn">← Back</button>
-                <div id="tool-container">
-                    <!-- Active tool content -->
-                </div>
-                <div class="ad-placeholder mid-ad">
-                    <span>Ad Space</span>
-                </div>
-                <div id="tool-results" class="results-container">
-                    <!-- Generated results -->
-                </div>
-            </section>
-
-            <!-- Profile/Premium View -->
-            <section id="profile-view" class="view hidden">
-                <button class="back-btn">← Back</button>
-                <div class="profile-card">
-                    <h2>My Profile</h2>
-                    <p id="user-email-display"></p>
-                    <div class="status-badge" id="premium-status">Free User</div>
-                    <p id="usage-count">Daily Usage: 0/3</p>
-                    <button id="upgrade-btn" class="btn-premium">Upgrade to Pro</button>
-                    <button id="admin-btn" class="btn-secondary hidden">Admin Dashboard</button>
-                    <button id="logout-btn" class="btn-danger">Logout</button>
-                </div>
-                <div class="saved-results-section">
-                    <h3>Saved Results</h3>
-                    <div id="saved-list"></div>
-                </div>
-            </section>
-
-            <!-- Admin View -->
-            <section id="admin-view" class="view hidden">
-                <button class="back-btn">← Back</button>
-                <h2>Admin Dashboard</h2>
-                <div class="admin-table-container">
-                    <table id="users-table">
-                        <thead>
-                            <tr>
-                                <th>Email</th>
-                                <th>Premium</th>
-                                <th>Usage</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="users-list"></tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
-
-        <!-- Footer -->
-        <footer>
-            <p>&copy; 2024 SolveIt Pro. All rights reserved.</p>
-        </footer>
+        <canvas id="confettiCanvas"></canvas>
     </div>
 
-    <!-- Templates for Tool Content -->
-    <template id="tool-template">
-        <div class="tool-header">
-            <h2 class="tool-title"></h2>
-            <p class="tool-desc"></p>
+    <!-- Main Container -->
+    <div class="app-container">
+        
+        <header>
+            <h1>Survivor Game</h1>
+            <div class="status-bar">
+                <span id="playerCount">Players: 0</span>
+                <span id="gameStatus">Status: Idle</span>
+            </div>
+        </header>
+
+        <!-- Game Controls -->
+        <div class="controls-section">
+            <button id="startBtn" class="btn start-btn">Start Game</button>
+            <button id="pauseBtn" class="btn warning-btn hidden">Pause</button>
+            <button id="resumeBtn" class="btn start-btn hidden">Resume</button>
+            <button id="cancelBtn" class="btn danger-btn hidden">Stop / Reset</button>
         </div>
-        <form class="tool-form">
-            <div id="form-fields"></div>
-            <button type="submit" class="btn-primary generate-btn">Generate</button>
-        </form>
-    </template>
+
+        <!-- The Arena -->
+        <main class="arena-container">
+            <div id="playerGrid" class="player-grid">
+                <!-- Players will be injected here -->
+            </div>
+        </main>
+
+        <!-- Admin / Data Management -->
+        <section class="admin-panel">
+            <h3>Admin Controls</h3>
+            
+            <div class="add-player-form">
+                <div class="input-group">
+                    <label for="usernameInput">Username</label>
+                    <input type="text" id="usernameInput" placeholder="Enter name">
+                </div>
+                <div class="input-group">
+                    <label for="imageInput">Profile Picture</label>
+                    <input type="file" id="imageInput" accept="image/*">
+                </div>
+                <button id="addPlayerBtn" class="btn primary-btn">Add Player</button>
+            </div>
+
+            <div class="admin-actions">
+                <button id="clearAllBtn" class="btn danger-outline-btn">Clear All Players</button>
+            </div>
+        </section>
+
+    </div>
 
     <script src="script.js"></script>
-    <script>
-        console.log("Index.html scripts loaded.");
-        window.onerror = function(msg, url, lineNo, columnNo, error) {
-            console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError object: ' + JSON.stringify(error));
-            return false;
-        };
-    </script>
 </body>
 </html>
