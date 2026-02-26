@@ -1,355 +1,295 @@
-/* =========================================
-   1. IndexedDB Wrapper (Data Persistence)
-   ========================================= */
+/**
+ * Instagram Survivor Game
+ * Pure Vanilla JS with IndexedDB for storage
+ */
+
+// --- Configuration & State ---
 const DB_NAME = 'SurvivorGameDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'players';
 
-const dbPromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+let db;
+let players = [];
+let gameInterval = null;
+let isPaused = false;
+let eliminatedIds = new Set();
 
-    request.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-            db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        }
-    };
-
-    request.onsuccess = (e) => resolve(e.target.result);
-    request.onerror = (e) => reject(e.target.error);
-});
-
-const DB = {
-    async addPlayer(player) {
-        const db = await dbPromise;
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(STORE_NAME, 'readwrite');
-            const store = tx.objectStore(STORE_NAME);
-            const req = store.add(player);
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
-        });
-    },
-
-    async getAllPlayers() {
-        const db = await dbPromise;
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(STORE_NAME, 'readonly');
-            const store = tx.objectStore(STORE_NAME);
-            const req = store.getAll();
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
-        });
-    },
-
-    async clearAll() {
-        const db = await dbPromise;
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(STORE_NAME, 'readwrite');
-            const store = tx.objectStore(STORE_NAME);
-            const req = store.clear();
-            req.onsuccess = () => resolve();
-            req.onerror = () => reject(req.error);
-        });
-    }
-};
-
-/* =========================================
-   2. Global State
-   ========================================= */
-const state = {
-    players: [],
-    aliveIds: [],
-    gameInterval: null,
-    isRunning: false,
-    isPaused: false
-};
-
-/* =========================================
-   3. DOM Elements
-   ========================================= */
-const els = {
-    grid: document.getElementById('playerGrid'),
-    username: document.getElementById('usernameInput'),
-    image: document.getElementById('imageInput'),
-    addBtn: document.getElementById('addPlayerBtn'),
-    clearBtn: document.getElementById('clearAllBtn'),
+// --- DOM Elements ---
+const elements = {
+    addPlayerForm: document.getElementById('addPlayerForm'),
+    usernameInput: document.getElementById('usernameInput'),
+    imageInput: document.getElementById('imageInput'),
+    arena: document.getElementById('arena'),
     startBtn: document.getElementById('startBtn'),
     pauseBtn: document.getElementById('pauseBtn'),
     resumeBtn: document.getElementById('resumeBtn'),
     cancelBtn: document.getElementById('cancelBtn'),
-    playerCount: document.getElementById('playerCount'),
-    gameStatus: document.getElementById('gameStatus'),
-    modal: document.getElementById('winnerModal'),
-    modalClose: document.getElementById('closeModalBtn'),
-    winnerText: document.getElementById('winnerText'),
-    winnerImg: document.getElementById('winnerImage'),
-    confettiCanvas: document.getElementById('confettiCanvas')
+    clearPlayersBtn: document.getElementById('clearPlayersBtn'),
+    resetGameBtn: document.getElementById('resetGameBtn'),
+    winnerModal: document.getElementById('winnerModal'),
+    winnerDisplay: document.getElementById('winnerDisplay'),
+    closeModalBtn: document.getElementById('closeModalBtn')
 };
 
-/* =========================================
-   4. Logic: Player Management
-   ========================================= */
-
-// Initialize
+// --- Initialization ---
 async function init() {
-    state.players = await DB.getAllPlayers();
-    renderGrid();
-    updateStatus();
+    try {
+        db = await openDB();
+        await loadPlayers();
+        renderPlayers();
+        setupEventListeners();
+    } catch (error) {
+        console.error('Initialization failed:', error);
+        alert('Failed to initialize database. Please refresh the page.');
+    }
 }
 
-// Add Player
-els.addBtn.addEventListener('click', async () => {
-    const name = els.username.value.trim();
-    const file = els.image.files[0];
-
-    if (!name || !file) {
-        alert("Please provide both a username and a profile picture.");
-        return;
-    }
-
-    // Convert image to Base64
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        const imageData = e.target.result;
-        
-        const newPlayer = {
-            id: Date.now().toString(),
-            name: name,
-            image: imageData
+// --- IndexedDB Logic ---
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+            }
         };
-
-        try {
-            await DB.addPlayer(newPlayer);
-            state.players.push(newPlayer);
-            renderGrid();
-            
-            // Reset form
-            els.username.value = '';
-            els.image.value = '';
-        } catch (err) {
-            console.error(err);
-            alert("Failed to save player. Image might be too large.");
-        }
-    };
-    reader.readAsDataURL(file);
-});
-
-// Clear All
-els.clearBtn.addEventListener('click', async () => {
-    if(confirm("Are you sure? This deletes all players.")) {
-        if (state.isRunning) stopGame();
-        await DB.clearAll();
-        state.players = [];
-        renderGrid();
-    }
-});
-
-// Render Grid
-function renderGrid() {
-    els.playerCount.textContent = `Players: ${state.players.length}`;
-    
-    // Performance optimization: 
-    // If not running, re-render all to ensure clean state.
-    // If running, we usually don't call this fully, but for reset we do.
-    els.grid.innerHTML = '';
-
-    const fragment = document.createDocumentFragment();
-
-    state.players.forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'player-card';
-        div.id = `p-${p.id}`;
-        div.innerHTML = `
-            <div class="player-img-wrapper">
-                <img src="${p.image}" alt="${p.name}" class="player-img">
-            </div>
-            <div class="player-name">${p.name}</div>
-        `;
-        fragment.appendChild(div);
+        request.onsuccess = (e) => resolve(e.target.result);
+        request.onerror = (e) => reject(e.target.error);
     });
-
-    els.grid.appendChild(fragment);
 }
 
-/* =========================================
-   5. Logic: Game Mechanics
-   ========================================= */
-
-els.startBtn.addEventListener('click', startGame);
-els.pauseBtn.addEventListener('click', pauseGame);
-els.resumeBtn.addEventListener('click', resumeGame);
-els.cancelBtn.addEventListener('click', stopGame);
-els.modalClose.addEventListener('click', () => {
-    els.modal.classList.add('hidden');
-    stopGame(); // Reset after viewing winner
-});
-
-function updateStatus(msg = "Idle") {
-    els.gameStatus.textContent = `Status: ${msg}`;
+async function loadPlayers() {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+        request.onsuccess = () => {
+            players = request.result;
+            resolve();
+        };
+        request.onerror = () => reject(request.error);
+    });
 }
 
-function toggleControls(mode) {
-    if (mode === 'running') {
-        els.startBtn.classList.add('hidden');
-        els.pauseBtn.classList.remove('hidden');
-        els.resumeBtn.classList.add('hidden');
-        els.cancelBtn.classList.remove('hidden');
-        // Disable admin during game
-        els.addBtn.disabled = true;
-        els.clearBtn.disabled = true;
-    } else if (mode === 'paused') {
-        els.pauseBtn.classList.add('hidden');
-        els.resumeBtn.classList.remove('hidden');
-    } else {
-        // Idle
-        els.startBtn.classList.remove('hidden');
-        els.pauseBtn.classList.add('hidden');
-        els.resumeBtn.classList.add('hidden');
-        els.cancelBtn.classList.add('hidden');
-        els.addBtn.disabled = false;
-        els.clearBtn.disabled = false;
-    }
+async function savePlayer(player) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.add(player);
+        request.onsuccess = (e) => {
+            player.id = e.target.result;
+            players.push(player);
+            resolve();
+        };
+        request.onerror = () => reject(request.error);
+    });
 }
 
+async function clearAllPlayers() {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.clear();
+        request.onsuccess = () => {
+            players = [];
+            resolve();
+        };
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// --- UI Rendering ---
+function renderPlayers() {
+    elements.arena.innerHTML = '';
+    players.forEach(player => {
+        const card = createPlayerCard(player);
+        if (eliminatedIds.has(player.id)) {
+            card.classList.add('eliminated');
+        }
+        elements.arena.appendChild(card);
+    });
+}
+
+function createPlayerCard(player) {
+    const div = document.createElement('div');
+    div.className = 'player-card';
+    div.id = `player-${player.id}`;
+    div.innerHTML = `
+        <img src="${player.dp}" alt="${player.username}" class="player-dp">
+        <span class="player-username">${player.username}</span>
+    `;
+    return div;
+}
+
+// --- Game Logic ---
 function startGame() {
-    if (state.players.length < 2) {
-        alert("Need at least 2 players to start!");
+    if (players.length < 2) {
+        alert('Add at least 2 players to start the game!');
         return;
     }
 
-    // Reset visuals
-    document.querySelectorAll('.player-card').forEach(el => el.classList.remove('eliminated'));
+    resetGameState();
+    updateControls('running');
     
-    state.aliveIds = state.players.map(p => p.id);
-    state.isRunning = true;
-    state.isPaused = false;
-    
-    toggleControls('running');
-    updateStatus("Running");
-    
-    runGameLoop();
-}
-
-function runGameLoop() {
-    if (state.gameInterval) clearInterval(state.gameInterval);
-
-    state.gameInterval = setInterval(() => {
-        if (state.aliveIds.length <= 1) {
-            declareWinner();
-            return;
+    gameInterval = setInterval(() => {
+        if (!isPaused) {
+            eliminateRandomPlayer();
         }
-
-        eliminatePlayer();
-
-    }, 2000); // 2 seconds per elimination
+    }, 2000);
 }
 
-function eliminatePlayer() {
-    const totalAlive = state.aliveIds.length;
-    if (totalAlive <= 1) return;
+function eliminateRandomPlayer() {
+    const remainingPlayers = players.filter(p => !eliminatedIds.has(p.id));
+    
+    if (remainingPlayers.length <= 1) {
+        stopGame();
+        if (remainingPlayers.length === 1) {
+            showWinner(remainingPlayers[0]);
+        }
+        return;
+    }
 
-    // Random Index
-    const randomIndex = Math.floor(Math.random() * totalAlive);
-    const eliminatedId = state.aliveIds[randomIndex];
-
-    // Remove from array
-    state.aliveIds.splice(randomIndex, 1);
-
-    // Update UI
-    const card = document.getElementById(`p-${eliminatedId}`);
+    const randomIndex = Math.floor(Math.random() * remainingPlayers.length);
+    const playerToEliminate = remainingPlayers[randomIndex];
+    
+    eliminatedIds.add(playerToEliminate.id);
+    const card = document.getElementById(`player-${playerToEliminate.id}`);
     if (card) {
         card.classList.add('eliminated');
     }
 
-    updateStatus(`${state.aliveIds.length} Remaining`);
+    // Check again after elimination
+    if (remainingPlayers.length - 1 === 1) {
+        const winner = remainingPlayers.find(p => p.id !== playerToEliminate.id);
+        setTimeout(() => {
+            stopGame();
+            showWinner(winner);
+        }, 1000);
+    }
 }
 
 function pauseGame() {
-    clearInterval(state.gameInterval);
-    state.isPaused = true;
-    toggleControls('paused');
-    updateStatus("Paused");
+    isPaused = true;
+    updateControls('paused');
 }
 
 function resumeGame() {
-    state.isPaused = false;
-    toggleControls('running');
-    updateStatus("Running");
-    runGameLoop();
+    isPaused = false;
+    updateControls('running');
 }
 
 function stopGame() {
-    clearInterval(state.gameInterval);
-    state.isRunning = false;
-    state.isPaused = false;
-    toggleControls('idle');
-    updateStatus("Idle");
-    renderGrid(); // Reset styles
+    clearInterval(gameInterval);
+    gameInterval = null;
+    updateControls('idle');
 }
 
-function declareWinner() {
-    clearInterval(state.gameInterval);
-    const winnerId = state.aliveIds[0];
-    const winner = state.players.find(p => p.id === winnerId);
+function cancelGame() {
+    stopGame();
+    resetGameState();
+    renderPlayers();
+}
 
-    if (winner) {
-        els.winnerText.textContent = winner.name;
-        els.winnerImg.src = winner.image;
-        els.modal.classList.remove('hidden');
-        startConfetti();
-    }
+function resetGameState() {
+    eliminatedIds.clear();
+    isPaused = false;
+}
+
+function updateControls(state) {
+    const isIdle = state === 'idle';
+    const isRunning = state === 'running';
+    const isPausedState = state === 'paused';
+
+    elements.startBtn.disabled = !isIdle;
+    elements.pauseBtn.disabled = !isRunning;
+    elements.resumeBtn.disabled = !isPausedState;
+    elements.cancelBtn.disabled = isIdle;
     
-    toggleControls('idle');
-    updateStatus("Game Over");
+    // Disable admin controls during game
+    elements.addPlayerForm.querySelector('button').disabled = !isIdle;
+    elements.clearPlayersBtn.disabled = !isIdle;
+    elements.resetGameBtn.disabled = !isIdle;
 }
 
-/* =========================================
-   6. Effects: Confetti
-   ========================================= */
-function startConfetti() {
-    const canvas = els.confettiCanvas;
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const pieces = [];
-    const colors = ['#f09433', '#e6683c', '#dc2743', '#cc2366', '#bc1888', '#BB86FC', '#03DAC6'];
-
-    for (let i = 0; i < 150; i++) {
-        pieces.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height - canvas.height,
-            w: Math.random() * 10 + 5,
-            h: Math.random() * 10 + 5,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            speed: Math.random() * 3 + 2,
-            angle: Math.random() * Math.PI * 2,
-            spin: Math.random() * 0.2 - 0.1
-        });
-    }
-
-    function draw() {
-        if (els.modal.classList.contains('hidden')) return; // Stop if closed
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        pieces.forEach(p => {
-            p.y += p.speed;
-            p.angle += p.spin;
-            
-            ctx.save();
-            ctx.translate(p.x, p.y);
-            ctx.rotate(p.angle);
-            ctx.fillStyle = p.color;
-            ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
-            ctx.restore();
-
-            if (p.y > canvas.height) p.y = -20;
-        });
-        requestAnimationFrame(draw);
-    }
-    draw();
+function showWinner(winner) {
+    elements.winnerDisplay.innerHTML = `
+        <img src="${winner.dp}" class="winner-dp-large">
+        <div class="winner-username-large">${winner.username}</div>
+        <div class="winner-label">WINNER</div>
+    `;
+    elements.winnerModal.style.display = 'flex';
+    createConfetti();
 }
 
-// Initial Load
-window.addEventListener('load', init);
+function createConfetti() {
+    const container = elements.winnerModal.querySelector('.confetti-container');
+    container.innerHTML = '';
+    const colors = ['#f1c40f', '#e67e22', '#e74c3c', '#9b59b6', '#3498db', '#2ecc71'];
+    
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = Math.random() * 2 + 's';
+        confetti.style.width = (Math.random() * 10 + 5) + 'px';
+        confetti.style.height = confetti.style.width;
+        container.appendChild(confetti);
+    }
+}
+
+// --- Event Listeners ---
+function setupEventListeners() {
+    elements.addPlayerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = elements.usernameInput.value.trim();
+        const file = elements.imageInput.files[0];
+
+        if (!username || !file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const player = {
+                username: username,
+                dp: event.target.result
+            };
+            await savePlayer(player);
+            renderPlayers();
+            elements.addPlayerForm.reset();
+        };
+        reader.readAsDataURL(file);
+    });
+
+    elements.startBtn.addEventListener('click', startGame);
+    elements.pauseBtn.addEventListener('click', pauseGame);
+    elements.resumeBtn.addEventListener('click', resumeGame);
+    elements.cancelBtn.addEventListener('click', cancelGame);
+
+    elements.clearPlayersBtn.addEventListener('click', async () => {
+        if (confirm('Are you sure you want to clear all players?')) {
+            await clearAllPlayers();
+            renderPlayers();
+        }
+    });
+
+    elements.resetGameBtn.addEventListener('click', () => {
+        cancelGame();
+    });
+
+    elements.closeModalBtn.addEventListener('click', () => {
+        elements.winnerModal.style.display = 'none';
+        cancelGame();
+    });
+
+    // Close modal on outside click
+    window.addEventListener('click', (e) => {
+        if (e.target === elements.winnerModal) {
+            elements.winnerModal.style.display = 'none';
+            cancelGame();
+        }
+    });
+}
+
+// Start the app
+init();
