@@ -2,72 +2,57 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Instagram Survivor Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <!-- Winner Modal -->
-    <div id="winnerModal" class="modal hidden">
-        <div class="modal-content">
-            <h2 class="winner-title">WINNER</h2>
-            <div class="winner-img-container">
-                <img id="winnerImage" src="" alt="Winner">
-            </div>
-            <h1 id="winnerText" class="winner-name">Username</h1>
-            <button id="closeModalBtn" class="btn secondary-btn">Close</button>
-        </div>
-        <canvas id="confettiCanvas"></canvas>
-    </div>
-
-    <!-- Main Container -->
-    <div class="app-container">
-        
+    <div class="container">
         <header>
-            <h1>Survivor Game</h1>
-            <div class="status-bar">
-                <span id="playerCount">Players: 0</span>
-                <span id="gameStatus">Status: Idle</span>
+            <h1>Instagram Survivor</h1>
+            <div class="game-controls">
+                <button id="startBtn" class="btn primary">Start Game</button>
+                <button id="pauseBtn" class="btn secondary" disabled>Pause</button>
+                <button id="resumeBtn" class="btn secondary" disabled>Resume</button>
+                <button id="cancelBtn" class="btn danger" disabled>Cancel</button>
             </div>
         </header>
 
-        <!-- Game Controls -->
-        <div class="controls-section">
-            <button id="startBtn" class="btn start-btn">Start Game</button>
-            <button id="pauseBtn" class="btn warning-btn hidden">Pause</button>
-            <button id="resumeBtn" class="btn start-btn hidden">Resume</button>
-            <button id="cancelBtn" class="btn danger-btn hidden">Stop / Reset</button>
-        </div>
+        <main>
+            <section id="adminSection" class="admin-panel">
+                <h2>Admin Controls</h2>
+                <form id="addPlayerForm" class="add-player-form">
+                    <div class="input-group">
+                        <input type="text" id="usernameInput" placeholder="Username" required>
+                        <div class="file-input-wrapper">
+                            <button type="button" class="btn-file">Upload DP</button>
+                            <input type="file" id="imageInput" accept="image/*" required>
+                        </div>
+                        <button type="submit" class="btn success">Add Player</button>
+                    </div>
+                </form>
+                <div class="admin-actions">
+                    <button id="clearPlayersBtn" class="btn danger-outline">Clear All Players</button>
+                    <button id="resetGameBtn" class="btn secondary-outline">Reset Game</button>
+                </div>
+            </section>
 
-        <!-- The Arena -->
-        <main class="arena-container">
-            <div id="playerGrid" class="player-grid">
-                <!-- Players will be injected here -->
-            </div>
+            <section id="arena" class="player-grid">
+                <!-- Players will be dynamically injected here -->
+            </section>
         </main>
 
-        <!-- Admin / Data Management -->
-        <section class="admin-panel">
-            <h3>Admin Controls</h3>
-            
-            <div class="add-player-form">
-                <div class="input-group">
-                    <label for="usernameInput">Username</label>
-                    <input type="text" id="usernameInput" placeholder="Enter name">
+        <!-- Winner Modal -->
+        <div id="winnerModal" class="modal">
+            <div class="modal-content">
+                <div class="confetti-container"></div>
+                <h2>WINNER</h2>
+                <div id="winnerDisplay">
+                    <!-- Winner info will be injected here -->
                 </div>
-                <div class="input-group">
-                    <label for="imageInput">Profile Picture</label>
-                    <input type="file" id="imageInput" accept="image/*">
-                </div>
-                <button id="addPlayerBtn" class="btn primary-btn">Add Player</button>
+                <button id="closeModalBtn" class="btn primary">Close</button>
             </div>
-
-            <div class="admin-actions">
-                <button id="clearAllBtn" class="btn danger-outline-btn">Clear All Players</button>
-            </div>
-        </section>
-
+        </div>
     </div>
 
     <script src="script.js"></script>
