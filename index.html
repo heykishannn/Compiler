@@ -3,58 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Instagram Survivor Game</title>
+    <title>MitraMela | Indian Community Social Platform</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Instagram Survivor</h1>
-            <div class="game-controls">
-                <button id="startBtn" class="btn primary">Start Game</button>
-                <button id="pauseBtn" class="btn secondary" disabled>Pause</button>
-                <button id="resumeBtn" class="btn secondary" disabled>Resume</button>
-                <button id="cancelBtn" class="btn danger" disabled>Cancel</button>
+
+    <!-- App Container -->
+    <div id="app">
+        
+        <!-- Navbar -->
+        <nav id="navbar" class="hidden">
+            <h2 class="brand">MitraMela</h2>
+            <div class="nav-links">
+                <button onclick="app.navigate('feed')">Feed</button>
+                <button onclick="app.navigate('groups')">Groups</button>
+                <button onclick="app.navigate('create')">➕ Post</button>
+                <button onclick="app.navigate('profile')">Profile</button>
+                <button onclick="app.navigate('settings')">⚙️</button>
             </div>
-        </header>
+        </nav>
 
-        <main>
-            <section id="adminSection" class="admin-panel">
-                <h2>Admin Controls</h2>
-                <form id="addPlayerForm" class="add-player-form">
-                    <div class="input-group">
-                        <input type="text" id="usernameInput" placeholder="Username" required>
-                        <div class="file-input-wrapper">
-                            <button type="button" class="btn-file">Upload DP</button>
-                            <input type="file" id="imageInput" accept="image/*" required>
-                        </div>
-                        <button type="submit" class="btn success">Add Player</button>
-                    </div>
+        <!-- VIEW: Auth (Login/Signup) -->
+        <div id="view-auth" class="view active">
+            <div class="auth-card">
+                <h1>MitraMela</h1>
+                <p>Connect with your community</p>
+                <form id="auth-form" onsubmit="app.handleAuth(event)">
+                    <input type="email" id="auth-email" placeholder="Email Address" required>
+                    <input type="password" id="auth-password" placeholder="Password" required>
+                    <button type="submit" id="auth-submit">Login</button>
                 </form>
-                <div class="admin-actions">
-                    <button id="clearPlayersBtn" class="btn danger-outline">Clear All Players</button>
-                    <button id="resetGameBtn" class="btn secondary-outline">Reset Game</button>
-                </div>
-            </section>
-
-            <section id="arena" class="player-grid">
-                <!-- Players will be dynamically injected here -->
-            </section>
-        </main>
-
-        <!-- Winner Modal -->
-        <div id="winnerModal" class="modal">
-            <div class="modal-content">
-                <div class="confetti-container"></div>
-                <h2>WINNER</h2>
-                <div id="winnerDisplay">
-                    <!-- Winner info will be injected here -->
-                </div>
-                <button id="closeModalBtn" class="btn primary">Close</button>
+                <p class="auth-toggle">Don't have an account? <span onclick="app.toggleAuthMode()">Sign up</span></p>
             </div>
         </div>
+
+        <!-- VIEW: Home Feed -->
+        <div id="view-feed" class="view hidden">
+            <div class="feed-header">
+                <h3>Home Feed</h3>
+            </div>
+            <div id="feed-container">
+                <!-- Posts injected via JS -->
+            </div>
+        </div>
+
+        <!-- VIEW: Create Post -->
+        <div id="view-create" class="view hidden">
+            <div class="create-post-card">
+                <h3>Create New Post</h3>
+                <input type="file" id="post-file" accept="image/*" onchange="app.previewPostImage(event)">
+                <canvas id="post-canvas" class="hidden"></canvas>
+                <img id="post-preview" class="hidden" alt="Preview">
+                <textarea id="post-caption" placeholder="Write a caption..." rows="3"></textarea>
+                <button onclick="app.publishPost()" id="publish-btn" class="btn-primary">Publish Post</button>
+            </div>
+        </div>
+
+        <!-- VIEW: Groups & Chat -->
+        <div id="view-groups" class="view hidden">
+            <div class="groups-layout">
+                <div class="group-list">
+                    <h3>Community Groups</h3>
+                    <div id="groups-container"></div>
+                    <button onclick="app.createGroup()" class="btn-primary" style="margin-top: 10px; width: 100%;">Create Group</button>
+                </div>
+                <div class="chat-area hidden" id="chat-area">
+                    <h4 id="chat-group-name">Select a Group</h4>
+                    <div id="chat-messages"></div>
+                    <div class="chat-input">
+                        <input type="text" id="chat-msg-input" placeholder="Type a message...">
+                        <button onclick="app.sendGroupMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: Profile -->
+        <div id="view-profile" class="view hidden">
+            <div class="profile-header">
+                <img src="https://via.placeholder.com/100" id="prof-avatar" class="avatar-large">
+                <h2 id="prof-name">Username</h2>
+                <p id="prof-bio">Bio goes here...</p>
+                <div class="stats">
+                    <div><span id="prof-posts-count">0</span> Posts</div>
+                    <div><span id="prof-followers">0</span> Followers</div>
+                    <div><span id="prof-following">0</span> Following</div>
+                </div>
+            </div>
+            <div class="profile-tabs">
+                <button class="active">My Posts</button>
+            </div>
+            <div id="profile-posts-grid" class="image-grid"></div>
+        </div>
+
+        <!-- VIEW: Settings -->
+        <div id="view-settings" class="view hidden">
+            <div class="settings-card">
+                <h3>Settings</h3>
+                <div class="setting-item">
+                    <label>Edit Name</label>
+                    <input type="text" id="set-name" placeholder="Full Name">
+                </div>
+                <div class="setting-item">
+                    <label>Edit Bio</label>
+                    <textarea id="set-bio" placeholder="Tell us about yourself"></textarea>
+                </div>
+                <button onclick="app.saveSettings()" class="btn-primary">Save Profile</button>
+                <hr>
+                <button onclick="app.navigate('admin')" class="btn-secondary">Admin Panel</button>
+                <button onclick="app.logout()" class="btn-danger">Logout</button>
+                <div class="monetization-badge">Monetization (Coming Soon)</div>
+            </div>
+        </div>
+
+        <!-- VIEW: Admin Panel -->
+        <div id="view-admin" class="view hidden">
+            <h3>Admin Dashboard</h3>
+            <div class="admin-stats">
+                <div class="stat-card">Total Users: <span id="admin-users">0</span></div>
+                <div class="stat-card">Total Posts: <span id="admin-posts">0</span></div>
+                <div class="stat-card">Total Groups: <span id="admin-groups">0</span></div>
+            </div>
+            <div id="admin-content"></div>
+        </div>
+
     </div>
 
-    <script src="script.js"></script>
+    <!-- Loader -->
+    <div id="loader" class="hidden"><div class="spinner"></div></div>
+
+    <script src="app.js"></script>
 </body>
-</html>
+                </html>
